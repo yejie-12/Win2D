@@ -1,47 +1,40 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 #include "generated\ArithmeticCompositeEffect.h"
-#include "generated\ColorMatrixEffect.h"
+#include "generated\ColorManagementEffect.h"
+#include "generated\HighlightsAndShadowsEffect.h"
 
 
 // Macro defines effect property get and set methods that pack a floating point 
 // value into just one component of a Vector4. This allows us to expand properties 
 // which D2D defines as a single Vector4, exposing them to WinRT as 4 separate floats.
 
-#define IMPLEMENT_PACKED_VECTOR_PROPERTY(CLASS_NAME, PROPERTY_NAME,                     \
-                                         PROPERTY_INDEX, VECTOR_COMPONENT)              \
-                                                                                        \
-    IFACEMETHODIMP CLASS_NAME::get_##PROPERTY_NAME(_Out_ float* value)                  \
-    {                                                                                   \
-        return ExceptionBoundary([&]                                                    \
-        {                                                                               \
-            CheckInPointer(value);                                                      \
-            Numerics::Vector4 packedValue;                                              \
-            GetProperty<float[4], Numerics::Vector4>(PROPERTY_INDEX, &packedValue);     \
-            *value = packedValue.VECTOR_COMPONENT;                                      \
-        });                                                                             \
-    }                                                                                   \
-                                                                                        \
-    IFACEMETHODIMP CLASS_NAME::put_##PROPERTY_NAME(_In_ float value)                    \
-    {                                                                                   \
-        return ExceptionBoundary([&]                                                    \
-        {                                                                               \
-            Numerics::Vector4 packedValue;                                              \
-            GetProperty<float[4], Numerics::Vector4>(PROPERTY_INDEX, &packedValue);     \
-            packedValue.VECTOR_COMPONENT = value;                                       \
-            SetProperty<float[4], Numerics::Vector4>(PROPERTY_INDEX, packedValue);      \
-        });                                                                             \
+#define IMPLEMENT_PACKED_VECTOR_PROPERTY(CLASS_NAME, PROPERTY_NAME,                         \
+                                         PROPERTY_INDEX, VECTOR_COMPONENT)                  \
+                                                                                            \
+    IFACEMETHODIMP CLASS_NAME::get_##PROPERTY_NAME(_Out_ float* value)                      \
+    {                                                                                       \
+        return ExceptionBoundary([&]                                                        \
+        {                                                                                   \
+            CheckInPointer(value);                                                          \
+            Numerics::Vector4 packedValue;                                                  \
+            GetBoxedProperty<float[4], Numerics::Vector4>(PROPERTY_INDEX, &packedValue);    \
+            *value = packedValue.VECTOR_COMPONENT;                                          \
+        });                                                                                 \
+    }                                                                                       \
+                                                                                            \
+    IFACEMETHODIMP CLASS_NAME::put_##PROPERTY_NAME(_In_ float value)                        \
+    {                                                                                       \
+        return ExceptionBoundary([&]                                                        \
+        {                                                                                   \
+            Numerics::Vector4 packedValue;                                                  \
+            GetBoxedProperty<float[4], Numerics::Vector4>(PROPERTY_INDEX, &packedValue);    \
+            packedValue.VECTOR_COMPONENT = value;                                           \
+            SetBoxedProperty<float[4], Numerics::Vector4>(PROPERTY_INDEX, packedValue);     \
+        });                                                                                 \
     }
 
 
@@ -71,31 +64,63 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { na
         D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS, 
         W)
 
+    IMPLEMENT_EFFECT_PROPERTY_MAPPING_HANDCODED(ArithmeticCompositeEffect,
+        { L"MultiplyAmount", D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS, GRAPHICS_EFFECT_PROPERTY_MAPPING_VECTORX },
+        { L"Source1Amount",  D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS, GRAPHICS_EFFECT_PROPERTY_MAPPING_VECTORY },
+        { L"Source2Amount",  D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS, GRAPHICS_EFFECT_PROPERTY_MAPPING_VECTORZ },
+        { L"Offset",         D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS, GRAPHICS_EFFECT_PROPERTY_MAPPING_VECTORW })
 
-    // ColorMatrixEffect.AlphaMode property needs special enum value conversion, because our
-    // CanvasAlphaMode enum doesn't match the numeric values of D2D1_COLORMATRIX_ALPHA_MODE.
 
-    IFACEMETHODIMP ColorMatrixEffect::get_AlphaMode(_Out_ CanvasAlphaMode* value)
+    // ColorManagementEffect has a custom GPU caps query.
+    IFACEMETHODIMP ColorManagementEffectFactory::IsBestQualitySupported(ICanvasDevice* device, boolean* result)
     {
         return ExceptionBoundary([&]
         {
-            D2D1_COLORMATRIX_ALPHA_MODE d2dValue;
-            GetProperty<uint32_t>(D2D1_COLORMATRIX_PROP_ALPHA_MODE, &d2dValue);
-            *value = FromD2DColorMatrixAlphaMode(d2dValue);
+            CheckInPointer(device);
+            CheckInPointer(result);
+
+            // Best quality mode requires floating point buffer precision.
+            boolean isFloatPrecisionSupported;
+            ThrowIfFailed(device->IsBufferPrecisionSupported(CanvasBufferPrecision::Precision32Float, &isFloatPrecisionSupported));
+
+            // It also requires at least D3D feature level 10.
+            ComPtr<ID3D11Device> d3dDevice;
+            ThrowIfFailed(As<IDirect3DDxgiInterfaceAccess>(device)->GetInterface(IID_PPV_ARGS(&d3dDevice)));
+            auto isFeatureLevel10 = d3dDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_10_0;
+
+            *result = isFloatPrecisionSupported && isFeatureLevel10;
         });
     }
 
-    IFACEMETHODIMP ColorMatrixEffect::put_AlphaMode(_In_ CanvasAlphaMode value)
-    {
-        if (value == CanvasAlphaMode::Ignore)
-        {
-            return E_INVALIDARG;
-        }
 
+#if (defined _WIN32_WINNT_WIN10) && (WINVER >= _WIN32_WINNT_WIN10)
+
+    // HighlightsAndShadowsEffect.SourceIsLinearGamma property needs special conversion,
+    // because we project the D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA enum as a bool.
+
+    IFACEMETHODIMP HighlightsAndShadowsEffect::get_SourceIsLinearGamma(_Out_ boolean* value)
+    {
         return ExceptionBoundary([&]
         {
-            SetProperty<uint32_t>(D2D1_COLORMATRIX_PROP_ALPHA_MODE, ToD2DColorMatrixAlphaMode(value));
+            CheckInPointer(value);
+            D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA d2dValue;
+            GetBoxedProperty<uint32_t>(D2D1_HIGHLIGHTSANDSHADOWS_PROP_INPUT_GAMMA, &d2dValue);
+            *value = (d2dValue == D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_LINEAR);
         });
     }
+
+    IFACEMETHODIMP HighlightsAndShadowsEffect::put_SourceIsLinearGamma(_In_ boolean value)
+    {
+        return ExceptionBoundary([&]
+        {
+            D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA d2dValue = value ? D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_LINEAR : D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_SRGB;
+            SetBoxedProperty<uint32_t>(D2D1_HIGHLIGHTSANDSHADOWS_PROP_INPUT_GAMMA, d2dValue);
+        });
+    }
+
+    IMPLEMENT_EFFECT_PROPERTY_MAPPING_HANDCODED(HighlightsAndShadowsEffect,
+        { L"SourceIsLinearGamma", D2D1_HIGHLIGHTSANDSHADOWS_PROP_INPUT_GAMMA, GRAPHICS_EFFECT_PROPERTY_MAPPING_UNKNOWN })
+
+#endif // _WIN32_WINNT_WIN10
 
 }}}}}

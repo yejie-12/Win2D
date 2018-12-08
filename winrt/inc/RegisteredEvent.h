@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
@@ -27,11 +19,17 @@ public:
         EventRegistrationToken token;
         ThrowIfFailed((eventSource->*addMethod)(handler, &token));
 
-        ComPtr<SOURCE> source(eventSource);
+        Microsoft::WRL::ComPtr<SOURCE> source(eventSource);
         m_unregisterFunction = 
-            [source, removeMethod, token]()
+            [source, removeMethod, token]
             {
-                ThrowIfFailed((source.Get()->*removeMethod)(token));
+                (source.Get()->*removeMethod)(token);
+
+                // We ignore the return value from removeMethod, because events can get
+                // unregistered arbitrarily late (eg. during garbage collection) at which
+                // point the target object might have already been destroyed. Some event
+                // implementations fail the unregister in that situation, which is unhelpful
+                // and not actionable for the app. Better to just swallow any such errors.
             };
     }
 
@@ -51,6 +49,7 @@ public:
 
     RegisteredEvent& operator=(RegisteredEvent&& other)
     {
+        Release();
         m_unregisterFunction = other.m_unregisterFunction;
         other.m_unregisterFunction = nullptr;
         return *this;

@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
@@ -17,6 +9,7 @@
 #include <Windows.System.Threading.h>
 #include <functional>
 #include "ErrorHandling.h"
+#include "LifespanTracker.h"
 
 
 // Helper for marking our callback delegates as agile, by mixing in FtmBase.
@@ -72,6 +65,8 @@ protected:
     template<typename TPrevious, typename TFunction>
     void RunAsContinuation(Microsoft::WRL::ComPtr<TPrevious> const& previousOperation, TFunction&& workerFunction)
     {
+        using namespace Microsoft::WRL;
+
         // We aren't ready to run this yet, but go ahead and create a callback which will 
         // later be executed on the threadpool. This captures and hangs onto necessary 
         // state such as workerFunction and a keepalive reference to 'this'.
@@ -135,10 +130,11 @@ protected:
 private:
     // Creates a callback delegate which will later execute the specified worker function.
     template<typename TFunction>
-    Microsoft::WRL::ComPtr<ABI::Windows::System::Threading::IWorkItemHandler> MakeThreadPoolDelegate(TFunction&& workerFunction)
+    Microsoft::WRL::ComPtr<ABI::Windows::System::Threading::IWorkItemHandler> MakeThreadPoolDelegate(TFunction const& workerFunction)
     {
         using namespace ABI::Windows::Foundation;
         using namespace ABI::Windows::System::Threading;
+        using namespace Microsoft::WRL;
 
         ComPtr<AsyncCommon> keepThisAliveUntilTaskCompletion(this);
 
@@ -179,6 +175,7 @@ private:
     {
         using namespace ABI::Windows::Foundation;
         using namespace ABI::Windows::System::Threading;
+        using namespace Microsoft::WRL;
 
         ComPtr<IThreadPoolStatics> threadPool;
         ThrowIfFailed(GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_System_Threading_ThreadPool).Get(), &threadPool));
@@ -220,7 +217,8 @@ public:
 
 // Implements the WinRT IAsyncOperation interface.
 template<typename T>
-class AsyncOperation : public AsyncCommon<ABI::Windows::Foundation::IAsyncOperation<T*>>
+class AsyncOperation : public AsyncCommon<ABI::Windows::Foundation::IAsyncOperation<T*>>,
+                       private LifespanTracker<AsyncOperation<T>>
 {
     InspectableClass(IAsyncOperation<T*>::z_get_rc_name_impl(), BaseTrust);
 
@@ -278,7 +276,8 @@ protected:
 
 
 // Implements the WinRT IAsyncAction interface.
-class AsyncAction : public AsyncCommon<ABI::Windows::Foundation::IAsyncAction>
+class AsyncAction : public AsyncCommon<ABI::Windows::Foundation::IAsyncAction>,
+                    private LifespanTracker<AsyncAction>
 {
     InspectableClass(InterfaceName_Windows_Foundation_IAsyncAction, BaseTrust);
 

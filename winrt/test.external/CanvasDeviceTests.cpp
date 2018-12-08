@@ -1,19 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
 using namespace Microsoft::Graphics::Canvas;
-using namespace Microsoft::Graphics::Canvas::DirectX::Direct3D11;
+using namespace WinRTDirectX;
+
+CanvasDebugLevel allDebugLevels[] = {
+    CanvasDebugLevel::Error,
+    CanvasDebugLevel::Warning,
+    CanvasDebugLevel::Information,
+    CanvasDebugLevel::None };
 
 TEST_CLASS(CanvasDeviceTests)
 {
@@ -29,30 +27,29 @@ TEST_CLASS(CanvasDeviceTests)
     {
         //
         // Unlike the unit tests, this uses actual D2D/D3D device creation. 
-        // Therefore, we want to cover each of {D2D debug layer on, off} and {D3D HW, SW}
+        // Therefore, we want to cover each of D3D HW and SW.
         //
 
         CanvasDevice^ canvasDevice = ref new CanvasDevice();
-        Assert::AreEqual(CanvasHardwareAcceleration::On, canvasDevice->HardwareAcceleration);
+        Assert::IsFalse(canvasDevice->ForceSoftwareRenderer);
         Assert::IsNotNull(GetDXGIDevice(canvasDevice).Get());
 
-        canvasDevice = ref new CanvasDevice(CanvasDebugLevel::Information);
-        Assert::AreEqual(CanvasHardwareAcceleration::On, canvasDevice->HardwareAcceleration);
-        Assert::IsNotNull(GetDXGIDevice(canvasDevice).Get());
-
-        canvasDevice = ref new CanvasDevice(CanvasDebugLevel::Warning, CanvasHardwareAcceleration::Off);
-        Assert::AreEqual(CanvasHardwareAcceleration::Off, canvasDevice->HardwareAcceleration);
+        canvasDevice = ref new CanvasDevice(true);
+        Assert::IsTrue(canvasDevice->ForceSoftwareRenderer);
         Assert::IsNotNull(GetDXGIDevice(canvasDevice).Get());
 
         IDirect3DDevice^ direct3DDevice = canvasDevice;
         canvasDevice = CanvasDevice::CreateFromDirect3D11Device(
-            direct3DDevice,
-            CanvasDebugLevel::None);
-        Assert::AreEqual(CanvasHardwareAcceleration::Unknown, canvasDevice->HardwareAcceleration);
+            direct3DDevice);
+        //
+        // Devices created using Direct3D interop have the convention of always
+        // ForceSoftwareRenderer == false.
+        //
+        Assert::IsFalse(canvasDevice->ForceSoftwareRenderer);
 
         delete canvasDevice;
             
-        ExpectObjectClosed([&]{ canvasDevice->HardwareAcceleration; });
+        ExpectObjectClosed([&]{ canvasDevice->ForceSoftwareRenderer; });
         ExpectObjectClosed([&]{ canvasDevice->MaximumBitmapSizeInPixels; });
         ExpectObjectClosed([&]{ GetDXGIDevice(canvasDevice); });
     }
@@ -77,5 +74,61 @@ TEST_CLASS(CanvasDeviceTests)
 
         Assert::AreEqual(originalCanvasDevice, newCanvasDevice);
         Assert::AreEqual(originalD2DDevice.Get(), newD2DDevice.Get());
+    }
+
+    TEST_METHOD(CanvasDevice_GetSharedDevice_ReturnsExisting)
+    {
+        auto d1 = CanvasDevice::GetSharedDevice(false);
+
+        auto d2 = CanvasDevice::GetSharedDevice(false);
+
+        Assert::AreEqual(d1, d2);
+    }
+
+    TEST_METHOD(CanvasDevice_GetSharedDevice_WhenDeviceClosed_ReturnsNew)
+    {
+        auto d1 = CanvasDevice::GetSharedDevice(false);
+
+        delete d1;
+
+        auto d2 = CanvasDevice::GetSharedDevice(false);
+
+        Assert::AreNotEqual(d1, d2);
+    }
+
+    TEST_METHOD(CanvasDevice_GetSharedDevice_WhenDebugLevelChanged_Fails)
+    {
+        DisableDebugLayer disableDebug;
+
+        auto d1 = CanvasDevice::GetSharedDevice(false);
+
+        CanvasDevice::DebugLevel = CanvasDebugLevel::Error;
+
+        ExpectCOMException(
+            E_FAIL,
+            L"CanvasDevice.DebugLevel has changed since this shared device was created. The debug level must be set before the first call to GetSharedDevice.",
+            [] { CanvasDevice::GetSharedDevice(false); });
+    }
+
+    TEST_METHOD(CanvasDevice_DefaultDebugLevel)
+    {
+#ifdef NDEBUG
+        Assert::AreEqual(CanvasDebugLevel::None, CanvasDevice::DebugLevel);
+#else
+        // In debug builds, ModuleInitialize (see DebugLayer.cpp) may have overridden the default
+        // debug level to specify CanvasDebugLevel::Warning. Or it may have left this set to
+        // CanvasDebugLevel::None (if the debug layer is not installed on the current machine).
+        Assert::IsTrue(CanvasDevice::DebugLevel == CanvasDebugLevel::Warning ||
+                       CanvasDevice::DebugLevel == CanvasDebugLevel::None);
+#endif
+    }
+
+    TEST_METHOD(CanvasDevice_SetAndGetDebugLevels)
+    {
+        for (auto debugLevel : allDebugLevels)
+        {
+            CanvasDevice::DebugLevel = debugLevel;
+            Assert::AreEqual(debugLevel, CanvasDevice::DebugLevel);
+        }
     }
 };

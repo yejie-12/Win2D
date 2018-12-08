@@ -1,24 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Globalization;
-using System.Xml.Serialization;
 using System.IO;
+using System.Linq;
+using System.Xml.Serialization;
 
 namespace CodeGen
 {
@@ -31,6 +21,18 @@ namespace CodeGen
 
             [XmlAttribute("displayname")]
             public string Displayname { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                EnumValue value = obj as EnumValue;
+
+                return (value != null) && (Name == value.Name);
+            }
+
+            public override int GetHashCode()
+            {
+                return Name.GetHashCode();
+            }
         }
 
         public class EnumValues
@@ -55,59 +57,18 @@ namespace CodeGen
 
             [XmlElement("Field")]
             public List<EnumValue> FieldsList { get; set; }
-
-            public override bool Equals(System.Object obj)
-            {
-                // If parameter is null return false.
-                if (obj == null)
-                {
-                    return false;
-                }
-
-                // If parameter cannot be cast to Point return false.
-                EnumValues fields = obj as EnumValues;
-                if ((System.Object)fields == null)
-                {
-                    return false;
-                }
-
-                if (fields.FieldsList.Count != this.FieldsList.Count)
-                {
-                    return false;
-                }
-
-                // Return true if the fields match:
-                bool isSame = true;
-                for (int fieldCount = 0; fieldCount < fields.FieldsList.Count; ++fieldCount)
-                {
-                    if (fields.FieldsList[fieldCount].Name != this.FieldsList[fieldCount].Name)
-                    {
-                        isSame = false;
-                        break;
-                    }
-                }
-                return isSame;
-            }
-
-            public override int GetHashCode()
-            {
-                int hash = 0;
-
-                foreach (var field in FieldsList)
-                {
-                    hash ^= field.GetHashCode();
-                }
-
-                return hash;
-            }
         }
-
 
         public class Property
         {
             public Property()
             {
                 ShouldProject = true;
+            }
+
+            public Property Clone()
+            {
+                return (Property)MemberwiseClone();
             }
 
             [XmlAttribute("name")]
@@ -137,10 +98,14 @@ namespace CodeGen
             public bool ShouldProject { get; set; }
             public bool IsHidden { get; set; }
             public bool IsHandCoded { get; set; }
+            public bool IsHdrAlias { get; set; }
 
             public bool ConvertRadiansToDegrees { get; set; }
+            public bool ConvertColorHdrToVector3 { get; set; }
 
             public string NativePropertyName { get; set; }
+
+            public string WinVer { get; set; }
 
             public List<string> ExcludedEnumIndexes { get; set; }
         }
@@ -183,6 +148,9 @@ namespace CodeGen
             public string InterfaceName { get; set; }
 
             public string Uuid { get; set; }
+
+            [XmlIgnore]
+            public Overrides.XmlBindings.Effect Overrides { get; set; }
         }
 
         public class D2DEnum
@@ -211,23 +179,35 @@ namespace CodeGen
                 effects.Add(ParseEffectXML(xmlFilePath));
             }
 
-            string windowsKitPath = Environment.ExpandEnvironmentVariables(@"%WindowsSdkDir%");
+            string windowsKitPath = Path.Combine(Environment.ExpandEnvironmentVariables("%WindowsSdkDir%"), "Include");
 
             // Check if %WindowsSdkDir% path is set
             if (!Directory.Exists(windowsKitPath))
             {
                 // Try the default path 
-                windowsKitPath = @"C:\Program Files (x86)\Windows Kits\8.1";
+                windowsKitPath = @"C:\Program Files (x86)\Windows Kits\8.1\Include";
                 if (!Directory.Exists(windowsKitPath))
                 {
                     throw new Exception(@"Missing WindowsSdkDir environment variable. Please run this application from VS command prompt");
                 }
             }
 
+            string windowsSdkVersion = Environment.GetEnvironmentVariable("WindowsSdkVersion");
+
+            if (!string.IsNullOrEmpty(windowsSdkVersion))
+            {
+                string pathWithSdkVersion = Path.Combine(windowsKitPath, windowsSdkVersion);
+
+                if (Directory.Exists(pathWithSdkVersion))
+                {
+                    windowsKitPath = pathWithSdkVersion;
+                }
+            }
+
             List<string> d2dHeaders = new List<string>
             {
-                windowsKitPath + @"/Include/um/d2d1effects.h",
-                windowsKitPath + @"/Include/um/d2d1_1.h"
+                Path.Combine(windowsKitPath, "um/d2d1effects.h"),
+                Path.Combine(windowsKitPath, "um/d2d1_1.h")
             };
 
             AssignEffectsNamesToProperties(effects);
@@ -243,6 +223,7 @@ namespace CodeGen
             AssignD2DEnums(effects, d2dEnums);
             AssignEffectsClassNames(effects, overrides.Effects, typeDictionary);
             ResolveTypeNames(effects);
+            AddHdrColorProperties(effects);
             RegisterUuids(effects);
             OverrideEnums(overrides.Enums, effects);
             GenerateOutput(effects, outputPath);
@@ -251,27 +232,19 @@ namespace CodeGen
         // Register effect uuids. These are generated by hashing the interface name following RFC 4122.
         private static void RegisterUuids(List<Effects.Effect> effects)
         {
-            var salt = new Guid("8DEBAF20-F852-4B20-BE55-4D7EA6DE19BE");
-
             foreach (var effect in effects)
             {
-                var name = "Microsoft.Graphics.Canvas.Effects." + effect.InterfaceName;
-                var uuid = UuidHelper.GetVersion5Uuid(salt, name);
-                effect.Uuid = uuid.ToString().ToUpper();
+                effect.Uuid = GenerateUuid(effect.InterfaceName);
             }
         }
 
-        public static bool IsEffectEnabled(Effects.Effect effect)
+        public static string GenerateUuid(string interfaceName)
         {
-            switch (effect.Properties[0].Value)
-            {
-                // TODO #2648: figure out how to project effects that output computation results rather than images.
-                case "Histogram":
-                    return false;
+            var salt = new Guid("8DEBAF20-F852-4B20-BE55-4D7EA6DE19BE");
 
-                default:
-                    return true;
-            }
+            var name = "Microsoft.Graphics.Canvas.Effects." + interfaceName;
+            var uuid = UuidHelper.GetVersion5Uuid(salt, name);
+            return uuid.ToString().ToUpper();
         }
 
         private static List<Effects.Property> GetAllEffectsProperties(List<Effects.Effect> effects)
@@ -316,6 +289,7 @@ namespace CodeGen
                         property.TypeNameCpp = enumOverride.ProjectedNameOverride;
                     }
                     property.ShouldProject = enumOverride.ShouldProject;
+                    property.WinVer = enumOverride.WinVer;
                     foreach (var enumValue in enumOverride.Values)
                     {
                         if (!enumValue.ShouldProject && property.ExcludedEnumIndexes != null)
@@ -339,10 +313,11 @@ namespace CodeGen
         {
             var typeRenames = new Dictionary<string, string[]>
             {
-                // D2D name                 IDL name   C++ name
-                { "bool",   new string[] { "boolean", "boolean" } },
-                { "int32",  new string[] { "INT32",   "int32_t" } },
-                { "uint32", new string[] { "INT32",   "int32_t" } },
+                // D2D name                       IDL name                   C++ name
+                { "bool",         new string[] { "boolean",                 "boolean" } },
+                { "int32",        new string[] { "INT32",                   "int32_t" } },
+                { "uint32",       new string[] { "INT32",                   "int32_t" } },
+                { "colorcontext", new string[] { "ColorManagementProfile*", "IColorManagementProfile*" } },
             };
 
             foreach (var property in GetAllEffectsProperties(effects))
@@ -381,7 +356,7 @@ namespace CodeGen
                             // Matrix5x4 is defined locally as part of Effects, but other math types live in the Numerics namespace.
                             if (!xmlName.Contains("5x4"))
                             {
-                                property.TypeNameIdl = "Microsoft.Graphics.Canvas.Numerics." + property.TypeNameIdl;
+                                property.TypeNameIdl = "NUMERICS." + property.TypeNameIdl;
                                 property.TypeNameCpp = "Numerics::" + property.TypeNameCpp;
                             }
                         }
@@ -401,6 +376,12 @@ namespace CodeGen
                         property.TypeNameBoxed = "float";
                         property.IsArray = true;
                     }
+                    else if (xmlName == "iunknown" && property.Name == "Table")
+                    {
+                        // Property of type ID2D1LookupTable3D is projected as EffectTransferTable3D.
+                        property.TypeNameIdl = "EffectTransferTable3D*";
+                        property.TypeNameCpp = property.TypeNameBoxed = "IEffectTransferTable3D*";
+                    }
                     else
                     {
                         // Any other type.
@@ -413,6 +394,29 @@ namespace CodeGen
                             property.TypeNameBoxed = "uint32_t";
                         }
                     }
+                }
+            }
+        }
+
+        private static void AddHdrColorProperties(List<Effects.Effect> effects)
+        {
+            foreach (var effect in effects)
+            {
+                var colorProperties = effect.Properties.Where(p => p.TypeNameCpp == "Color").ToList();
+
+                foreach (var property in colorProperties)
+                {
+                    var hdrProperty = property.Clone();
+                    hdrProperty.Name = hdrProperty.Name + "Hdr";
+                    hdrProperty.TypeNameIdl = "NUMERICS.Vector4";
+                    hdrProperty.TypeNameCpp = "Numerics::Vector4";
+
+                    if (hdrProperty.Type == "vector3")
+                        hdrProperty.ConvertColorHdrToVector3 = true;
+
+                    hdrProperty.IsHdrAlias = true;
+
+                    effect.Properties.Add(hdrProperty);
                 }
             }
         }
@@ -430,14 +434,24 @@ namespace CodeGen
                 for (int propertyIndex2 = propertyIndex + 1; propertyIndex2 < allProperties.Count; propertyIndex2++)
                 {
                     Effects.EnumValues fields2 = allProperties[propertyIndex2].EnumFields;
-                    if (fields2 == null || fields.FieldsList.Count != fields2.FieldsList.Count)
+                    if (fields2 == null)
                         continue;
-                    if (fields.Equals(fields2))
+
+                    // Allow merging if either enum is a subset of the values of the other,
+                    // but not if their value sets are distinct in both directions.
+                    var delta1 = fields.FieldsList.Except(fields2.FieldsList);
+                    var delta2 = fields2.FieldsList.Except(fields.FieldsList);
+
+                    if (!delta1.Any() || !delta2.Any())
                     {
                         fields.Usage = Effects.EnumValues.UsageType.UsedByMultipleEffects;
                         fields.IsRepresentative = true;
                         fields2.Usage = Effects.EnumValues.UsageType.UsedByMultipleEffects;
                         fields2.FieldsList = fields.FieldsList;
+
+                        // Exclude any enum values that are supported by one enum but not the other.
+                        allProperties[propertyIndex2].ExcludedEnumIndexes.AddRange(delta1.Select(field => fields.FieldsList.IndexOf(field).ToString()));
+                        allProperties[propertyIndex].ExcludedEnumIndexes.AddRange(delta2.Select(field => fields2.FieldsList.IndexOf(field).ToString()));
                     }
                 }
             }
@@ -507,6 +521,8 @@ namespace CodeGen
 
         private static void ApplyEffectOverrides(Effects.Effect effect, Overrides.XmlBindings.Effect effectOverride, Dictionary<string, QualifiableType> typeDictionary)
         {
+            effect.Overrides = effectOverride;
+
             // Override the effect name?
             if (effectOverride.ProjectedNameOverride != null)
             {
@@ -547,7 +563,7 @@ namespace CodeGen
                     // Add a custom property that is part of our API surface but not defined by D2D.
                     effect.Properties.Add(new Effects.Property
                     {
-                        Name = propertyOverride.Name,
+                        Name = propertyOverride.ProjectedNameOverride ?? propertyOverride.Name,
                         TypeNameIdl = string.IsNullOrEmpty(propertyOverride.Type) ? property.TypeNameIdl : propertyOverride.Type,
                         IsHandCoded = true
                     });
@@ -618,7 +634,7 @@ namespace CodeGen
                         enumName = enumName.Substring(5);
                         Enum effectEnum;
                         string key = "D2D1::" + enumName;
-                        if(typeDictionary.ContainsKey(key))
+                        if (typeDictionary.ContainsKey(key))
                         {
                             effectEnum = typeDictionary[key] as Enum;
                         }
@@ -696,7 +712,12 @@ namespace CodeGen
                 OutputEffectType.OutputCommonEnums(effects, commonStreamWriter);
             }
 
-            foreach (var effect in effects.Where(IsEffectEnabled))
+            using (Formatter effectMakersStreamWriter = new Formatter(Path.Combine(outDirectory, "EffectMakers.cpp")))
+            {
+                OutputEffectType.OutputEffectMakers(effects, effectMakersStreamWriter);
+            }
+
+            foreach (var effect in effects)
             {
                 Directory.CreateDirectory(outDirectory);
                 using (Formatter idlStreamWriter = new Formatter(Path.Combine(outDirectory, effect.ClassName + ".abi.idl")),

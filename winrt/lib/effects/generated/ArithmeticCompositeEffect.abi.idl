@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -18,7 +10,7 @@ namespace Microsoft.Graphics.Canvas.Effects
 
     [version(VERSION), uuid(BEEB682B-D64C-5C8B-A1FB-332162ED099C), exclusiveto(ArithmeticCompositeEffect)]
     interface IArithmeticCompositeEffect : IInspectable
-        requires Microsoft.Graphics.Canvas.ICanvasImage
+        requires ICanvasEffect
     {
         [propget]
         HRESULT ClampOutput([out, retval] boolean* value);
@@ -51,23 +43,22 @@ namespace Microsoft.Graphics.Canvas.Effects
         HRESULT Offset([in] float value);
 
         [propget]
-        HRESULT Source1([out, retval] IEffectInput** input);
+        HRESULT Source1([out, retval] IGRAPHICSEFFECTSOURCE** source);
 
         [propput]
-        HRESULT Source1([in] IEffectInput* input);
+        HRESULT Source1([in] IGRAPHICSEFFECTSOURCE* source);
 
         [propget]
-        HRESULT Source2([out, retval] IEffectInput** input);
+        HRESULT Source2([out, retval] IGRAPHICSEFFECTSOURCE** source);
 
         [propput]
-        HRESULT Source2([in] IEffectInput* input);
+        HRESULT Source2([in] IGRAPHICSEFFECTSOURCE* source);
 
     };
 
-    [version(VERSION), activatable(VERSION)]
+    [STANDARD_ATTRIBUTES, activatable(VERSION)]
     runtimeclass ArithmeticCompositeEffect
     {
         [default] interface IArithmeticCompositeEffect;
-        interface IEffect;
     }
 }

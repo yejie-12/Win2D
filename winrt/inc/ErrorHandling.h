@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
@@ -109,6 +101,14 @@ inline void ThrowHR(HRESULT hr, HSTRING message)
     ThrowHR(hr);
 }
 
+__declspec(noreturn) __declspec(noinline)
+inline void ThrowHR(HRESULT hr, wchar_t const* message)
+{
+    using ::Microsoft::WRL::Wrappers::HStringReference;
+
+    ThrowHR(hr, HStringReference(message).Get());
+}
+
 //
 // Throws if the HR fails.  This is the workhorse helper for converting calls to
 // functions that return HRESULTs to exceptions. eg:
@@ -136,6 +136,14 @@ inline void ThrowIfNegative(T value)
 {
     if (value < 0)
         ThrowHR(E_INVALIDARG);
+}
+
+inline void ThrowIfZeroOrNegative(uint32_t n)
+{
+    if (n <= 0)
+    {
+        ThrowHR(E_INVALIDARG);
+    }
 }
 
 //
@@ -169,23 +177,27 @@ inline void CheckAndClearOutPointer(T** ptr)
 // Therefore the only way that Make() will return an error is if an allocation
 // fails.
 //
+__declspec(noreturn) __declspec(noinline)
+inline void ThrowBadAlloc()
+{
+    throw std::bad_alloc();
+}
+
 inline void CheckMakeResult(bool result)
 {
     if (!result)
-        throw std::bad_alloc();
+        ThrowBadAlloc();
 }
-
 
 //
 // Converts exceptions in the callable code into HRESULTs.
 //
-template<typename CALLABLE>
-HRESULT ExceptionBoundary(CALLABLE&& fn)
+__declspec(noinline)
+inline HRESULT ThrownExceptionToHResult()
 {
     try
     {
-        fn();
-        return S_OK;
+        throw;
     }
     catch (HResultException const& e)
     {
@@ -198,5 +210,19 @@ HRESULT ExceptionBoundary(CALLABLE&& fn)
     catch (...)
     {
         return E_UNEXPECTED;
+    }
+}
+
+template<typename CALLABLE>
+HRESULT ExceptionBoundary(CALLABLE&& fn)
+{
+    try
+    {
+        fn();
+        return S_OK;
+    }
+    catch (...)
+    {
+        return ThrownExceptionToHResult();
     }
 }

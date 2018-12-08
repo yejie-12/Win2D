@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
@@ -93,4 +85,29 @@ WicBitmapTestFixture CreateWicBitmapTestFixture()
     ThrowIfFailed(result.RenderTarget->CreateBitmapFromWicBitmap(wicBitmap.Get(), &result.Bitmap));
 
     return result;
+}
+
+bool GpuMatchesDescription(CanvasDevice^ canvasDevice, wchar_t const* description)
+{
+    auto dxgiDevice = GetDXGIInterface<IDXGIDevice>(canvasDevice);
+
+    ComPtr<IDXGIAdapter> adapter;
+    ThrowIfFailed(dxgiDevice->GetAdapter(&adapter));
+
+    DXGI_ADAPTER_DESC adapterDesc;
+    ThrowIfFailed(adapter->GetDesc(&adapterDesc));
+
+    return wcscmp(adapterDesc.Description, description) == 0;
+}
+
+int NextValueRepresentableAsFloat(int value)
+{
+    int nextValue = value + 1;
+
+    while (static_cast<int>(static_cast<float>(nextValue)) <= value)
+    {
+        nextValue++;
+    }
+
+    return nextValue;
 }

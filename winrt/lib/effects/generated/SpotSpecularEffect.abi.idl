@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -18,19 +10,19 @@ namespace Microsoft.Graphics.Canvas.Effects
 
     [version(VERSION), uuid(83AE4CD0-80AA-5783-8572-F15E5F85329E), exclusiveto(SpotSpecularEffect)]
     interface ISpotSpecularEffect : IInspectable
-        requires Microsoft.Graphics.Canvas.ICanvasImage
+        requires ICanvasEffect
     {
         [propget]
-        HRESULT LightPosition([out, retval] Microsoft.Graphics.Canvas.Numerics.Vector3* value);
+        HRESULT LightPosition([out, retval] NUMERICS.Vector3* value);
 
         [propput]
-        HRESULT LightPosition([in] Microsoft.Graphics.Canvas.Numerics.Vector3 value);
+        HRESULT LightPosition([in] NUMERICS.Vector3 value);
 
         [propget]
-        HRESULT LightTarget([out, retval] Microsoft.Graphics.Canvas.Numerics.Vector3* value);
+        HRESULT LightTarget([out, retval] NUMERICS.Vector3* value);
 
         [propput]
-        HRESULT LightTarget([in] Microsoft.Graphics.Canvas.Numerics.Vector3 value);
+        HRESULT LightTarget([in] NUMERICS.Vector3 value);
 
         [propget]
         HRESULT Focus([out, retval] float* value);
@@ -69,10 +61,10 @@ namespace Microsoft.Graphics.Canvas.Effects
         HRESULT LightColor([in] Windows.UI.Color value);
 
         [propget]
-        HRESULT HeightMapKernelSize([out, retval] Microsoft.Graphics.Canvas.Numerics.Vector2* value);
+        HRESULT HeightMapKernelSize([out, retval] NUMERICS.Vector2* value);
 
         [propput]
-        HRESULT HeightMapKernelSize([in] Microsoft.Graphics.Canvas.Numerics.Vector2 value);
+        HRESULT HeightMapKernelSize([in] NUMERICS.Vector2 value);
 
         [propget]
         HRESULT HeightMapInterpolationMode([out, retval] Microsoft.Graphics.Canvas.CanvasImageInterpolation* value);
@@ -81,17 +73,22 @@ namespace Microsoft.Graphics.Canvas.Effects
         HRESULT HeightMapInterpolationMode([in] Microsoft.Graphics.Canvas.CanvasImageInterpolation value);
 
         [propget]
-        HRESULT Source([out, retval] IEffectInput** input);
+        HRESULT LightColorHdr([out, retval] NUMERICS.Vector4* value);
 
         [propput]
-        HRESULT Source([in] IEffectInput* input);
+        HRESULT LightColorHdr([in] NUMERICS.Vector4 value);
+
+        [propget]
+        HRESULT Source([out, retval] IGRAPHICSEFFECTSOURCE** source);
+
+        [propput]
+        HRESULT Source([in] IGRAPHICSEFFECTSOURCE* source);
 
     };
 
-    [version(VERSION), activatable(VERSION)]
+    [STANDARD_ATTRIBUTES, activatable(VERSION)]
     runtimeclass SpotSpecularEffect
     {
         [default] interface ISpotSpecularEffect;
-        interface IEffect;
     }
 }

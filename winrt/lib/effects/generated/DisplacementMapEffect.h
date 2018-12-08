@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -27,12 +19,16 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { na
         InspectableClass(RuntimeClass_Microsoft_Graphics_Canvas_Effects_DisplacementMapEffect, BaseTrust);
 
     public:
-        DisplacementMapEffect();
+        DisplacementMapEffect(ICanvasDevice* device = nullptr, ID2D1Effect* effect = nullptr);
 
-        PROPERTY(Amount, float);
-        PROPERTY(XChannelSelect, EffectChannelSelect);
-        PROPERTY(YChannelSelect, EffectChannelSelect);
-        PROPERTY(Source, IEffectInput*);
-        PROPERTY(Displacement, IEffectInput*);
+        static IID const& EffectId() { return CLSID_D2D1DisplacementMap; }
+
+        EFFECT_PROPERTY(Amount, float);
+        EFFECT_PROPERTY(XChannelSelect, EffectChannelSelect);
+        EFFECT_PROPERTY(YChannelSelect, EffectChannelSelect);
+        EFFECT_PROPERTY(Source, IGraphicsEffectSource*);
+        EFFECT_PROPERTY(Displacement, IGraphicsEffectSource*);
+
+        EFFECT_PROPERTY_MAPPING();
     };
 }}}}}

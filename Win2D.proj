@@ -5,115 +5,110 @@
 
     For best performance, enable parallel builds:
 
-        msbuild Win2D.proj /maxcpucount
+        msbuild Win2D.proj /maxcpucount /nr:false
 -->
 
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="12.0" DefaultTargets="Build">
 
-  <!-- Parameters that can be configured by the caller, eg. "msbuild Win2D.proj /p:BuildPhone=false" -->
+  <!-- Parameters that can be configured by the caller, eg. "msbuild Win2D.proj /p:BuildTests=false" -->
   <PropertyGroup>
     <BuildPlatforms>Win32;x64;ARM;AnyCPU</BuildPlatforms>
     <BuildConfigurations>Debug;Release</BuildConfigurations>
-    <BuildWindows>true</BuildWindows>
-    <BuildPhone>true</BuildPhone>
     <BuildTests>true</BuildTests>
     <BuildTools>true</BuildTools>
     <BuildDocs>true</BuildDocs>
     <RunTests>true</RunTests>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <ShouldRunUAPTests>false</ShouldRunUAPTests>
+    <ShouldRunUAPTests Condition="'$(registry:HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion@CurrentBuildNumber)' &gt;= '10000'">true</ShouldRunUAPTests>
+  </PropertyGroup>
 
   <!-- Set default platforms for each project type -->
   <ItemDefinitionGroup>
-    <WindowsProject>
+    <UAPProject>
       <Platforms>Win32;x64;ARM</Platforms>
-    </WindowsProject>
-    <PhoneProject>
-      <Platforms>Win32;ARM</Platforms>
-    </PhoneProject>
+      <BinDir>UAP</BinDir>
+    </UAPProject>
     <AnyCPUProject>
       <Platforms>AnyCPU</Platforms>
+      <BinDir>Windows</BinDir>
     </AnyCPUProject>
   </ItemDefinitionGroup>
 
 
-  <!-- Windows projects implementing the Canvas API -->
-  <ItemGroup Condition="$(BuildWindows)">
-    <WindowsProject Include="winrt\lib\winrt.lib.Windows.vcxproj" />
-    <WindowsProject Include="winrt\dll\winrt.dll.Windows.vcxproj" />
-    <WindowsProject Include="numerics\DotNet\DotNetNumerics.Windows.csproj" />
+  <!-- Projects implementing the Canvas API -->
+  <ItemGroup>
+    <UAPProject Include="winrt\lib\winrt.lib.uap.vcxproj" />
+    <UAPProject Include="winrt\dll\winrt.dll.uap.vcxproj" />
   </ItemGroup>
 
-  <!-- Windows Phone projects implementing the Canvas API -->
-  <ItemGroup Condition="$(BuildPhone)">
-    <PhoneProject Include="winrt\lib\winrt.lib.WindowsPhone.vcxproj" />
-    <PhoneProject Include="winrt\dll\winrt.dll.WindowsPhone.vcxproj" />
-    <PhoneProject Include="numerics\DotNet\DotNetNumerics.WindowsPhone.csproj" />
-  </ItemGroup>
-
-  <!-- Windows test projects -->
-  <ItemGroup Condition="$(BuildWindows) and $(BuildTests)">
-    <WindowsProject Include="winrt\test.internal\winrt.test.internal.vcxproj">
+  <!-- Test projects -->
+  <ItemGroup Condition="$(BuildTests)">
+    <UAPProject Include="winrt\test.internal\winrt.test.internal.uap.vcxproj">
       <Platforms>Win32;x64</Platforms>
-      <AutomatedTests>desktop</AutomatedTests>
-    </WindowsProject>
-    <WindowsProject Include="winrt\test.external\winrt.test.external.Windows.vcxproj">
-      <AutomatedTests>store</AutomatedTests>
-    </WindowsProject>
-    <WindowsProject Include="winrt\test.nativecomponent\winrt.test.nativecomponent.Windows.vcxproj" />
-    <WindowsProject Include="winrt\test.managed\Windows\winrt.test.managed.Windows.csproj">
-      <AutomatedTests>store</AutomatedTests>
-    </WindowsProject>
-    <WindowsProject Include="tests\CsConsumer\Windows\CsConsumer.Windows.csproj" />
-    <WindowsProject Include="tests\ExampleGallery\Windows\ExampleGallery.Windows.csproj" />
-    <WindowsProject Include="numerics\Cpp\tests\CppNumericsTests.Windows.vcxproj">
-      <AutomatedTests>store</AutomatedTests>
-    </WindowsProject>
-    <WindowsProject Include="numerics\DotNet\tests\Windows\DotNetNumericsTests.Windows.csproj">
-      <AutomatedTests>store</AutomatedTests>
-    </WindowsProject>
-  </ItemGroup>
-
-  <!-- Windows Phone test projects -->
-  <ItemGroup Condition="$(BuildPhone) and $(BuildTests)">
-    <PhoneProject Include="winrt\test.external\winrt.test.external.WindowsPhone.vcxproj" />
-    <PhoneProject Include="winrt\test.nativecomponent\winrt.test.nativecomponent.WindowsPhone.vcxproj" />
-    <PhoneProject Include="winrt\test.managed\WindowsPhone\winrt.test.managed.WindowsPhone.csproj" />
-    <PhoneProject Include="tests\CsConsumer\WindowsPhone\CsConsumer.WindowsPhone.csproj" />
-    <PhoneProject Include="tests\ExampleGallery\WindowsPhone\ExampleGallery.WindowsPhone.csproj"/>
-    <PhoneProject Include="numerics\Cpp\tests\CppNumericsTests.WindowsPhone.vcxproj" />
-    <PhoneProject Include="numerics\DotNet\tests\WindowsPhone\DotNetNumericsTests.WindowsPhone.csproj" />
+      <AutomatedTests Condition="$(ShouldRunUAPTests)">desktop</AutomatedTests>
+    </UAPProject>
+    <UAPProject Include="winrt\test.external\winrt.test.external.uap.vcxproj">
+      <Platforms>Win32;x64</Platforms>
+      <!--
+        Workaround https://github.com/Microsoft/vstest/issues/1534 by temporarily 
+        disabling running winrt.test.external unit tests from the command line. 
+        Note these tests can still be run inside the Visual Studio 2017 IDE.
+      <AutomatedTests Condition="$(ShouldRunUAPTests)">store</AutomatedTests>
+      -->
+    </UAPProject>
+    <UAPProject Include="winrt\test.nativecomponent\winrt.test.nativecomponent.uap.vcxproj" />
+    <UAPProject Include="winrt\test.managed\winrt.test.managed.uap.csproj">
+      <AutomatedTests Condition="$(ShouldRunUAPTests)">store</AutomatedTests>
+      <BuildInParallel>false</BuildInParallel>
+    </UAPProject>
+    <UAPProject Include="samples\SimpleSample\SimpleSample.uap.csproj" />
+    <UAPProject Include="samples\CoreWindowExample\CoreWindowExample.uap.csproj" />
+    <UAPProject Include="samples\CompositionExample\CompositionExample.csproj" />
+    <UAPProject Include="samples\ExampleGallery\Direct3DInterop\ExampleGallery.Direct3DInterop.uap.vcxproj">
+      <BuildInParallel>false</BuildInParallel>
+    </UAPProject>
+    <UAPProject Include="samples\ExampleGallery\BackgroundTask\ExampleGallery.BackgroundTask.uap.csproj" />
+    <UAPProject Include="samples\ExampleGallery\ExampleGallery.uap.csproj" />
   </ItemGroup>
 
   <!-- Tools projects -->
   <ItemGroup Condition="$(BuildTools)">
-    <AnyCPUProject Include="tools\copyright\copyright.csproj" />
+    <AnyCPUProject Include="tools\checkcode\checkcode.csproj" />
     <AnyCPUProject Include="tools\codegen\exe\codegen.exe.csproj" />
     <AnyCPUProject Include="tools\codegen\test\codegen.test.csproj" Condition="$(BuildTests)">
       <AutomatedTests>desktop</AutomatedTests>
     </AnyCPUProject>
+    <AnyCPUProject Include="tools\mock\exe\mock.exe.csproj" />
+    <AnyCPUProject Include="tools\mock\test\mock.test.csproj" Condition="$(BuildTests)">
+      <AutomatedTests>desktop</AutomatedTests>
+    </AnyCPUProject>
     <AnyCPUProject Include="tools\docs\DocDiff\DocDiff.csproj" />
+    <AnyCPUProject Include="tools\docs\DocPreprocess\DocPreprocess.csproj" />
     <AnyCPUProject Include="tools\docs\ExtractAPISurface\ExtractAPISurface.csproj" />
     <AnyCPUProject Include="tools\docs\MergeIntellisense\MergeIntellisense.csproj" />
+    <AnyCPUProject Include="tools\exportsample\exportsample.csproj" />
   </ItemGroup>
 
 
   <!-- Master target just chains to a bunch of workers -->
   <Target Name="Build"
-          DependsOnTargets="BuildProjects; CheckCopyrightBanners; BuildDocs; RunTests" />
+          DependsOnTargets="BuildProjects; CheckCode; BuildDocs; RunTests" />
 
 
   <!-- Use batching to build each project in turn -->
   <Target Name="BuildProjects"
-          DependsOnTargets="PrepareVersionInfo; ChooseProjectsToBuild"
+          DependsOnTargets="PrepareVersionInfo; ChooseProjectsToBuild; ChooseConfigurationsToRestore; RestoreNuGetPackages; WorkAroundNuGetRestoreBug"
           Inputs="@(ProjectsToBuild)"
           Outputs="%(PlatformIndependentName)">
 
     <Message Importance="High" Text="Building all variants of project %(ProjectsToBuild.PlatformIndependentName):" />
     <Message Importance="High" Text="  %(ProjectsToBuild.Filename) (%(ProjectsToBuild.Configuration)|%(ProjectsToBuild.Platform))" />
 
-    <!-- All the variants (platform and configuration) of a project can be built in parallel -->
-    <MSBuild Projects="@(ProjectsToBuild)" BuildInParallel="true" Properties="IncludeVersionInfo=true" />
+    <!-- All the variants (platform and configuration) of most projects can be built in parallel -->
+    <MSBuild Projects="@(ProjectsToBuild)" BuildInParallel="%(ProjectsToBuild.BuildInParallel)" Properties="IncludeVersionInfo=true" />
   </Target>
 
 
@@ -124,7 +119,7 @@
       <BuildConfiguration Include="$(BuildConfigurations)" />
 
       <!-- Generate the cartesian product of all projects * all platforms we are building -->
-      <CandidateProjects Include="@(WindowsProject);@(PhoneProject);@(AnyCPUProject)">
+      <CandidateProjects Include="@(UAPProject);@(AnyCPUProject)">
         <Platform>%(BuildPlatform.Identity)</Platform>
       </CandidateProjects>
 
@@ -137,10 +132,11 @@
       </ProjectsPerConfig>
 
       <!-- Move platform and configuration into the AdditionalProperties metadata, and generate a
-           platform independent name that will be the same for Windows and Phone project variants -->
+           platform independent name that will be the same for Windows, Phone and UAP project variants -->
       <ProjectsToBuild Include="@(ProjectsPerConfig)">
         <AdditionalProperties>Platform=%(ProjectsPerConfig.Platform);Configuration=%(ProjectsPerConfig.Configuration)</AdditionalProperties>
-        <PlatformIndependentName>$([System.String]::new('%(ProjectsPerConfig.Filename)').Replace('Windows', '').Replace('Phone', '').TrimEnd('.'))</PlatformIndependentName>
+        <PlatformIndependentName>$([System.String]::new('%(ProjectsPerConfig.Filename)').Replace('Windows', '').Replace('Phone', '').Replace('uap', '').TrimEnd('.'))</PlatformIndependentName>
+        <BuildInParallel Condition="'%(ProjectsPerConfig.BuildInParallel)' == ''">true</BuildInParallel>
       </ProjectsToBuild>
     </ItemGroup>
   </Target>
@@ -193,32 +189,53 @@
   </Target>
 
 
-  <!-- Make sure all our source files have the right copyright -->
-  <Target Name="CheckCopyrightBanners"
-          Condition="$(BuildTools) and $(BuildPlatforms.Contains('AnyCPU')) and $(BuildConfigurations.Contains('Release'))">
+  <!-- Make sure all our source files have the right copyright and formatting -->
+  <Target Name="CheckCode"
+          Condition="$(BuildTools) and $(BuildPlatforms.Contains('AnyCPU'))">
 
-    <Message Importance="High" Text="Checking copyright banners" />
+    <Message Importance="High" Text="Checking copyright banners and source code formatting" />
 
-    <MSBuild Projects="tools\copyright\CheckCopyrightBanners.proj" />
+    <MSBuild Projects="tools\checkcode\RunCodeChecks.proj" />
   </Target>
 
 
   <!-- Build the reference documentation -->
+  <UsingTask TaskName="SetEnv" AssemblyFile="$(VCTargetsPath)Microsoft.Build.CppTasks.Common.dll"/>
+
   <Target Name="BuildDocs"
           Condition="$(BuildDocs) and
                      $(BuildTools) and
-                     $(BuildWindows) and
                      $(BuildPlatforms.Contains('AnyCPU')) and
                      $(BuildPlatforms.Contains('Win32')) and
                      $(BuildConfigurations.Contains('Release'))">
 
     <Message Importance="High" Text="Building documentation" />
 
-    <MSBuild Projects="tools\docs\BuildDocs.proj" />
+    <!-- unset SHFBROOT, so that BuildDocs only picks up the version of
+         sandcastle installed via nuget -->
+    <SetEnv Name="SHFBROOT" Prefix="false" />
+
+    <!-- Use <Exec> rather than <MSBuild> here, since we want BuildDocs.proj to
+         be isolated from the environment that's formed around running
+         Win2D.proj up to this point, and to suppress the Sandcastle
+         false positive warning BHT0001 -->
+    <Exec Command="&quot;$(MSBuildBinPath)\msbuild&quot; $(MSBuildThisFileDirectory)tools\docs\BuildDocs.proj" 
+          IgnoreStandardErrorWarningFormat="true"
+          CustomErrorRegularExpression=": error "
+          CustomWarningRegularExpression=": warning (?!BHT0001)" />
   </Target>
 
 
   <!-- Run the automated tests -->
+
+  <PropertyGroup>
+    <_VsTestPathUnderCommonTools>..\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe</_VsTestPathUnderCommonTools>
+    <_VsTest Condition="Exists('$(VS120COMNTOOLS)$(_VsTestPathUnderCommonTools)')">$(VS120COMNTOOLS)$(_VsTestPathUnderCommonTools)</_VsTest>
+    <_VsTest Condition="Exists('$(VS140COMNTOOLS)$(_VsTestPathUnderCommonTools)')">$(VS140COMNTOOLS)$(_VsTestPathUnderCommonTools)</_VsTest>
+    <_VsTest Condition="Exists('$(VS150COMNTOOLS)$(_VsTestPathUnderCommonTools)')">$(VS150COMNTOOLS)$(_VsTestPathUnderCommonTools)</_VsTest>
+    <VsTest>"$([System.IO.Path]::GetFullPath('$(_VsTest)'))"</VsTest>
+  </PropertyGroup>
+
   <Target Name="RunTests"
           Condition="$(BuildTests) and $(RunTests)"
           DependsOnTargets="ChooseProjectsToBuild; ChooseTestsToRun"
@@ -227,7 +244,7 @@
 
     <Message Importance="High" Text="Running tests: %(TestProjects.Filename) (%(TestProjects.Configuration)|%(TestProjects.Platform))" />
 
-    <Exec Command="vstest.console %(TestProjects.TestBinary)%(TestProjects.TestArgs)" ContinueOnError="ErrorAndContinue" IgnoreStandardErrorWarningFormat="true" />
+    <Exec Command="$(VsTest) %(TestProjects.TestBinary)%(TestProjects.TestArgs)" ContinueOnError="ErrorAndContinue" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
 
@@ -239,7 +256,7 @@
         <TestPlatform Condition="%(ProjectsToBuild.Platform) != Win32">%(ProjectsToBuild.Platform)</TestPlatform>
 
         <!-- Work out where the test binaries are located -->
-        <TestPath>bin\Windows%(TestProjects.TestPlatform)\%(ProjectsToBuild.Configuration)</TestPath>
+        <TestPath>bin\%(ProjectsToBuild.BinDir)%(TestProjects.TestPlatform)\%(ProjectsToBuild.Configuration)</TestPath>
 
         <TestAppX Condition="%(ProjectsToBuild.Configuration) == Release">%(ProjectsToBuild.Filename)_1.0.0.0_%(ProjectsToBuild.Platform)</TestAppX>
         <TestAppX Condition="%(ProjectsToBuild.Configuration) != Release">%(ProjectsToBuild.Filename)_1.0.0.0_%(ProjectsToBuild.Platform)_%(ProjectsToBuild.Configuration)</TestAppX>
@@ -254,5 +271,44 @@
       </TestProjects>
     </ItemGroup>
   </Target>
+
+  
+  <Target Name="ChooseConfigurationsToRestore">
+    <ItemGroup>
+      <ProjectToRestore Include="$(MSBuildThisFileDirectory)Win2D.uap.sln" />
+
+      <!-- Expand parameter properties into item groups, so we can batch over them -->
+      <BuildPlatform Include="$(BuildPlatforms)" />
+      <BuildConfiguration Include="$(BuildConfigurations)" />
+
+      <!-- Generate the cartesian product of all platforms * configurations that we are building -->
+      <ConfigToRestore Include="@(ProjectToRestore)">
+        <Configuration>%(BuildConfiguration.Identity)</Configuration>
+      </ConfigToRestore>
+
+      <NuGetRestore Include="@(ConfigToRestore)" Condition="%(BuildPlatform.Identity) != AnyCPU">
+        <Platform>%(BuildPlatform.Identity)</Platform>
+      </NuGetRestore>
+
+      <!-- Internal Microsoft builds can optionally consume the Windows SDK via NuGet -->
+      <NuGetRestore Include="build\pkges\packages.config" Condition="'$(UseNuGetSDK)' != ''" />
+    </ItemGroup>
+  </Target>
+
+
+  <!--
+    Workaround https://github.com/Microsoft/vstest/issues/1533 by deleting the 
+    unnecessary assets.json file after running nuget restore on winrt.test.external.
+  -->
+  <Target Name="WorkAroundNuGetRestoreBug">
+    <ItemGroup>
+      <FileToDelete Include="obj\winrt.test.external.uap\**\project.assets.json" />
+    </ItemGroup>
+
+    <Delete Files="@(FileToDelete)" />
+  </Target>
+
+
+  <Import Project="$(MsBuildThisFileDirectory)build\nuget-restore.targets" />
 
 </Project>

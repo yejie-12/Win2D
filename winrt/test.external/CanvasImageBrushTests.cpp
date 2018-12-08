@@ -1,19 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
 using namespace Microsoft::Graphics::Canvas;
-using namespace Microsoft::Graphics::Canvas::DirectX;
+using namespace Microsoft::Graphics::Canvas::Effects;
+using namespace WinRTDirectX;
 using namespace Windows::UI;
 
 static CanvasBitmap^ CreateArbitraryCanvasBitmap(CanvasDevice^ device)
@@ -23,6 +16,7 @@ static CanvasBitmap^ CreateArbitraryCanvasBitmap(CanvasDevice^ device)
         ref new Platform::Array<Color>(0),
         0,
         0,
+        DEFAULT_DPI,
         CanvasAlphaMode::Premultiplied);
 }
 
@@ -51,11 +45,22 @@ public:
         Assert::AreEqual<ICanvasImage^>(nullptr, brush->Image);
     }
 
+    TEST_METHOD(CanvasImageBrush_Construct_WithBitmap)
+    {
+        auto anyBitmap = CreateArbitraryCanvasBitmap(m_device);
+
+        auto brush = ref new CanvasImageBrush(m_device, anyBitmap);
+
+        Assert::AreEqual<ICanvasImage>(anyBitmap, brush->Image);
+    }
+
     TEST_METHOD(CanvasImageBrush_Construct_WithImage)
     {
-        auto brush = ref new CanvasImageBrush(m_device, m_anyImage);
+        auto anyImage = ref new CanvasCommandList(m_device);
 
-        Assert::AreEqual(m_anyImage, brush->Image);
+        auto brush = ref new CanvasImageBrush(m_device, anyImage);
+
+        Assert::AreEqual<ICanvasImage>(anyImage, brush->Image);
     }
 
     TEST_METHOD(CanvasImageBrush_ImageProperty_WithBitmap)
@@ -78,6 +83,16 @@ public:
         Assert::AreEqual<ICanvasImage^>(anyRenderTarget, brush->Image);
     }
 
+    TEST_METHOD(CanvasImageBrush_ImageProperty_WithCommandList)
+    {
+        auto anyCommandList = ref new CanvasCommandList(m_device);
+
+        auto brush = ref new CanvasImageBrush(m_device);
+        brush->Image = anyCommandList;
+
+        Assert::AreEqual<ICanvasImage^>(anyCommandList, brush->Image);
+    }
+
     TEST_METHOD(CanvasImageBrush_ImageProperty_WithEffect)
     {
         auto anyEffect = CreateArbitraryEffect();
@@ -85,9 +100,7 @@ public:
         auto brush = ref new CanvasImageBrush(m_device);
         brush->Image = anyEffect;
 
-        // TODO #2630: get_Image needs to support effects
-        Assert::ExpectException<Platform::NotImplementedException^>(
-            [&] { Assert::AreEqual<ICanvasImage^>(anyEffect, brush->Image); });
+        Assert::AreEqual<ICanvasImage^>(anyEffect, brush->Image);
     }
 
     TEST_METHOD(CanvasImageBrush_SourceRectangle)
@@ -117,6 +130,20 @@ public:
     {
         auto brush = ref new CanvasImageBrush(m_device, CreateArbitraryEffect());
         Assert::IsNull(brush->SourceRectangle);
+    }
+
+    TEST_METHOD(CanvasImageBrush_AccessBaseBrushPropertiesBeforeSettingSourceRect)
+    {
+        auto brush = ref new CanvasImageBrush(m_device, CreateArbitraryEffect());
+
+        float opacity = 23;
+        float3x2 transform{ 1, 2, 3, 4, 5, 6 };
+
+        brush->Opacity = opacity;
+        brush->Transform = transform;
+
+        Assert::AreEqual(opacity, brush->Opacity);
+        Assert::AreEqual<float3x2>(transform, brush->Transform);
     }
 };
 
@@ -258,9 +285,7 @@ public:
 
         auto d2dEffect = As<ID2D1Effect>(image);
 
-        // TODO #1697: Without effect interop there's not much more we can check
-        // here.  Once we have effect interop we should check that
-        // GetOrCreate<>(d2dEffect) matches m_imageThatIsNotABitmap.
+        Assert::AreEqual(m_imageThatIsNotABitmap, GetOrCreate<ICanvasImage>(d2dEffect.Get()));
     }
 };
 
@@ -337,20 +362,121 @@ public:
         Assert::IsTrue(IsSameInstance(d2dImageBrush.Get(), wrappedD2DImageBrush.Get()));
     }
 
-    TEST_METHOD(CanvasImageBrush_GetOrCreate_IsNotIdempotent)
+    TEST_METHOD(CanvasImageBrush_GetOrCreate_IsIdempotent)
     {
-        //
-        // Since CanvasImageBrush wraps multiple D2D resources and tracks state
-        // not necessarily stored in the underlying resource, GetOrCreate does
-        // not attempt to be idempotent.
-        //
-
         auto d2dImageBrush = CreateD2DImageBrush();
 
         auto brush1 = GetOrCreate<CanvasImageBrush>(m_device, d2dImageBrush.Get());
         auto brush2 = GetOrCreate<CanvasImageBrush>(m_device, d2dImageBrush.Get());
 
-        Assert::IsFalse(IsSameInstance(reinterpret_cast<IInspectable*>(brush1), reinterpret_cast<IInspectable*>(brush2)));
+        Assert::AreEqual(brush1, brush2);
+    }
+
+    TEST_METHOD(CanvasImageBrush_GetResource_WrongDevice)
+    {
+        auto brush = ref new CanvasImageBrush(m_device);
+
+        auto otherDevice = ref new CanvasDevice();
+
+        ExpectCOMException(E_INVALIDARG, L"Existing resource wrapper is associated with a different device.",
+            [&]
+            {
+                GetWrappedResource<ID2D1Brush>(otherDevice, brush);
+            });
+    }
+
+    TEST_METHOD(CanvasImageBrush_GetResource_WhenSourceIsEffect_AppliesDpiCompensation)
+    {
+        // Create an image brush.
+        auto brush = ref new CanvasImageBrush(m_device);
+        brush->SourceRectangle = Rect{ 0, 0, 1, 1 };
+        auto d2dBrush = GetWrappedResource<ID2D1ImageBrush>(brush);
+
+        // Create a bitmap image.
+        auto image = ref new CanvasRenderTarget(m_device, 1, 1, DEFAULT_DPI);
+        auto d2dImage = GetWrappedResource<ID2D1Image>(image);
+
+        // Create an effect, with the bitmap as its source.
+        auto effect = ref new GaussianBlurEffect();
+        effect->Source = image;
+        auto d2dEffect = GetWrappedResource<ID2D1Effect>(m_device, effect);
+
+        // Set the effect as the brush image, purely at the D2D level (not using Win2D APIs).
+        d2dBrush->SetImage(As<ID2D1Image>(d2dEffect).Get());
+
+        // Looking up the ID2D1ImageBrush a second time should return the same instance as before.
+        auto d2dBrush2 = GetWrappedResource<ID2D1ImageBrush>(brush);
+        Assert::IsTrue(IsSameInstance(d2dBrush.Get(), d2dBrush2.Get()));
+
+        // DPI compensation fixups should have been applied to the effect.
+        ComPtr<ID2D1Image> effectInput;
+        d2dEffect->GetInput(0, &effectInput);
+        Assert::IsFalse(IsSameInstance(effectInput.Get(), d2dImage.Get()));
+
+        auto dpiEffect = As<ID2D1Effect>(effectInput);
+        Assert::IsTrue(dpiEffect->GetValue<IID>(D2D1_PROPERTY_CLSID) == CLSID_D2D1DpiCompensation);
+
+        dpiEffect->GetInput(0, &effectInput);
+        Assert::IsTrue(IsSameInstance(effectInput.Get(), d2dImage.Get()));
+
+        // Win2D property getter should notice that we changed the brush source.
+        Assert::IsTrue(brush->Image == effect);
+
+        // DPI compensation should not be visible in the Win2D view of the effect graph.
+        Assert::IsTrue(effect->Source == image);
+    }
+
+    TEST_METHOD(CanvasImageBrush_GetResource_WhenSourceIsEffectOnWrongDevice_RerealizesAccordingly)
+    {
+        // Create an image brush.
+        auto brush = ref new CanvasImageBrush(m_device);
+        brush->SourceRectangle = Rect{ 0, 0, 1, 1 };
+
+        // Create an effect, and set it as the brush image.
+        auto effect = ref new ColorSourceEffect();
+        brush->Image = effect;
+
+        // Validate that the proper D2D resources were set.
+        auto d2dBrush = GetWrappedResource<ID2D1ImageBrush>(brush);
+        auto d2dEffect1 = GetWrappedResource<ID2D1Effect>(m_device, effect);
+
+        ComPtr<ID2D1Image> brushImage;
+        d2dBrush->GetImage(&brushImage);
+        Assert::IsTrue(IsSameInstance(d2dEffect1.Get(), brushImage.Get()));
+
+        // Realize the effect onto a second device.
+        auto device2 = ref new CanvasDevice();
+        auto d2dEffect2 = GetWrappedResource<ID2D1Effect>(device2, effect);
+
+        // D2D brush state should still be pointing at the now orphaned realized effect,
+        // but the Win2D CanvasImageBrush.Image property getter still knows what effect this is.
+        d2dBrush->GetImage(&brushImage);
+        Assert::IsTrue(IsSameInstance(d2dEffect1.Get(), brushImage.Get()));
+
+        Assert::AreEqual<ICanvasImage>(effect, brush->Image);
+
+        // Setting a property on the effect should be reflected on its second D2D instance, but not the first.
+        effect->Color = Colors::Red;
+
+        Assert::AreEqual(float4(0, 0, 0, 1), d2dEffect1->GetValue<float4>(D2D1_FLOOD_PROP_COLOR));
+        Assert::AreEqual(float4(1, 0, 0, 1), d2dEffect2->GetValue<float4>(D2D1_FLOOD_PROP_COLOR));
+
+        // Now use the brush. This should realize the effect back over to the original device.
+        auto d2dBrush2 = GetWrappedResource<ID2D1ImageBrush>(brush);
+     
+        Assert::IsTrue(IsSameInstance(d2dBrush.Get(), d2dBrush2.Get()));
+
+        Assert::AreEqual<ICanvasImage>(effect, brush->Image);
+
+        d2dBrush->GetImage(&brushImage);
+
+        Assert::AreEqual(effect, GetOrCreate<ColorSourceEffect>(m_device, brushImage.Get()));
+
+        Assert::IsFalse(IsSameInstance(d2dEffect1.Get(), brushImage.Get()));
+        Assert::IsFalse(IsSameInstance(d2dEffect2.Get(), brushImage.Get()));
+
+        effect->Color = Colors::Blue;
+        Assert::AreEqual(float4(0, 0, 1, 1), As<ID2D1Effect>(brushImage)->GetValue<float4>(D2D1_FLOOD_PROP_COLOR));
     }
 
     ComPtr<ID2D1ImageBrush> CreateD2DImageBrush(D2D1_RECT_F rect = D2D1_RECT_F{})

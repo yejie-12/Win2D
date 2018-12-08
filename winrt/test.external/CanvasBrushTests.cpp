@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
@@ -34,11 +26,11 @@ TEST_CLASS(CanvasBrushTests)
         canvasSolidColorBrush->Opacity = 0.8f;
         Assert::AreEqual(0.8f, canvasSolidColorBrush->Opacity);
 
-        Numerics::Matrix3x2 identity = { 1, 0, 0, 1, 0, 0 };
-        Numerics::Matrix3x2 scaleAndTranslate = { 3, 0, 0, 3, -4, -2 };
-        Assert::AreEqual(identity, canvasSolidColorBrush->Transform);
+        float3x2 identity = { 1, 0, 0, 1, 0, 0 };
+        float3x2 scaleAndTranslate = { 3, 0, 0, 3, -4, -2 };
+        Assert::AreEqual<float3x2>(identity, canvasSolidColorBrush->Transform);
         canvasSolidColorBrush->Transform = scaleAndTranslate;
-        Assert::AreEqual(scaleAndTranslate, canvasSolidColorBrush->Transform);
+        Assert::AreEqual<float3x2>(scaleAndTranslate, canvasSolidColorBrush->Transform);
 
         delete canvasSolidColorBrush;
 
@@ -170,6 +162,9 @@ TEST_CLASS(CanvasBrushTests)
 
     TEST_METHOD(CanvasGradientBrush_ThrowOnChannelIgnore)
     {
+        // We expect this test to hit debug layer validation failures, so must run it without the debug layer.
+        DisableDebugLayer disableDebug;
+
         auto device = ref new CanvasDevice();
         Assert::ExpectException<Platform::InvalidArgumentException^>(
             [&]

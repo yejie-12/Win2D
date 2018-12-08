@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -17,18 +9,26 @@
 
 namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { namespace Effects
 {
-    CompositeEffect::CompositeEffect()
-        : CanvasEffect(CLSID_D2D1Composite, 1, 0, false)
+    CompositeEffect::CompositeEffect(ICanvasDevice* device, ID2D1Effect* effect)
+        : CanvasEffect(EffectId(), 1, 0, false, device, effect, static_cast<ICompositeEffect*>(this))
     {
-        // Set default values
-        SetProperty<uint32_t>(D2D1_COMPOSITE_PROP_MODE, D2D1_COMPOSITE_MODE_SOURCE_OVER);
+        if (!effect)
+        {
+            // Set default values
+            SetBoxedProperty<uint32_t>(D2D1_COMPOSITE_PROP_MODE, D2D1_COMPOSITE_MODE_SOURCE_OVER);
+        }
     }
 
-    IMPLEMENT_PROPERTY(CompositeEffect,
+    IMPLEMENT_EFFECT_PROPERTY(CompositeEffect,
         Mode,
         uint32_t,
         CanvasComposite,
         D2D1_COMPOSITE_PROP_MODE)
 
-    ActivatableClass(CompositeEffect);
+    IMPLEMENT_EFFECT_SOURCES_PROPERTY(CompositeEffect)
+
+    IMPLEMENT_EFFECT_PROPERTY_MAPPING(CompositeEffect,
+        { L"Mode", D2D1_COMPOSITE_PROP_MODE, GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT })
+
+    ActivatableClassWithFactory(CompositeEffect, SimpleAgileActivationFactory<CompositeEffect>);
 }}}}}

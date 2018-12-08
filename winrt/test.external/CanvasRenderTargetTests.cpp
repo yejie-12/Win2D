@@ -1,20 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
 using namespace Microsoft::Graphics::Canvas;
-using namespace Microsoft::Graphics::Canvas::DirectX;
 using namespace Microsoft::WRL::Wrappers;
+using namespace WinRTDirectX;
 using namespace Windows::Foundation;
 using namespace Windows::UI;
 
@@ -31,8 +23,8 @@ TEST_CLASS(CanvasRenderTargetTests)
         CanvasRenderTarget^ renderTarget = ref new CanvasRenderTarget(canvasDevice, 0, 0, DEFAULT_DPI);
         Assert::AreEqual(0.0f, renderTarget->Size.Width);
         Assert::AreEqual(0.0f, renderTarget->Size.Height);
-        Assert::AreEqual(0.0f, renderTarget->SizeInPixels.Width);
-        Assert::AreEqual(0.0f, renderTarget->SizeInPixels.Height);
+        Assert::AreEqual(0u, renderTarget->SizeInPixels.Width);
+        Assert::AreEqual(0u, renderTarget->SizeInPixels.Height);
 
         CanvasDrawingSession^ drawingSession = renderTarget->CreateDrawingSession();
         drawingSession->Clear(Colors::White);
@@ -64,5 +56,51 @@ TEST_CLASS(CanvasRenderTargetTests)
 
         Assert::AreEqual(originalRenderTarget, newRenderTarget);
         Assert::AreEqual(originalD2DBitmap.Get(), newD2DBitmap.Get());
+    }
+
+
+    TEST_METHOD(CanvasRenderTarget_Constructors)
+    {
+        auto creator = ref new StubResourceCreatorWithDpi(ref new CanvasDevice());
+
+        auto renderTarget1 = ref new CanvasRenderTarget(creator, 23, 42);
+        auto renderTarget2 = ref new CanvasRenderTarget(creator, Size{ 7, 21 });
+
+        Assert::AreEqual(renderTarget1->Size, Size{ 23, 42 });
+        Assert::AreEqual(renderTarget2->Size, Size{ 7, 21 });
+    }
+
+
+    TEST_METHOD(CanvasRenderTarget_MaxSizeError)
+    {
+        auto device = ref new CanvasDevice();
+        auto maxSize = device->MaximumBitmapSizeInPixels;
+        auto tooBig = NextValueRepresentableAsFloat(maxSize);
+        wchar_t msg[256];
+
+        swprintf_s(msg, L"Cannot create CanvasRenderTarget sized %d x 1; MaximumBitmapSizeInPixels for this device is %d.", tooBig, maxSize);
+        ExpectCOMException(E_INVALIDARG, msg, [&] { ref new CanvasRenderTarget(device, static_cast<float>(tooBig), 1, 96); });
+
+        swprintf_s(msg, L"Cannot create CanvasRenderTarget sized 1 x %d; MaximumBitmapSizeInPixels for this device is %d.", tooBig, maxSize);
+        ExpectCOMException(E_INVALIDARG, msg, [&] { ref new CanvasRenderTarget(device, 1, static_cast<float>(tooBig), 96); });
+
+        swprintf_s(msg, L"Cannot create CanvasRenderTarget sized %d x 2; MaximumBitmapSizeInPixels for this device is %d.", tooBig, maxSize);
+        ExpectCOMException(E_INVALIDARG, msg, [&] { ref new CanvasRenderTarget(device, static_cast<float>(tooBig) / 2, 1, 192); });
+    }
+
+
+    TEST_METHOD(CanvasRenderTarget_NestedBeginDraw)
+    {
+        auto device = ref new CanvasDevice();
+        auto renderTarget = ref new CanvasRenderTarget(device, 1, 1, 96);
+        auto drawingSession = renderTarget->CreateDrawingSession();
+
+        ExpectCOMException(
+            E_FAIL, 
+            L"The last drawing session returned by CreateDrawingSession must be disposed before a new one can be created.",
+            [&]
+            {
+                renderTarget->CreateDrawingSession();
+            });
     }
 };

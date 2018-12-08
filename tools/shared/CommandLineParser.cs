@@ -1,23 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 using System;
-using System.IO;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace Shared
 {
@@ -94,7 +86,12 @@ namespace Shared
 
         bool ParseArgument(string arg)
         {
-            if (arg.StartsWith("/"))
+            if (arg.StartsWith("@"))
+            {
+                // Parse a response file.
+                return ParseResponseFile(arg.Substring(1));
+            }
+            else if (arg.StartsWith("/"))
             {
                 // Parse an optional argument.
                 char[] separators = { ':' };
@@ -132,6 +129,26 @@ namespace Shared
 
                 return SetOption(field, arg);
             }
+        }
+
+
+        bool ParseResponseFile(string filename)
+        {
+            string[] lines;
+
+            try
+            {
+                lines = File.ReadAllLines(filename);
+            }
+            catch
+            {
+                ShowError("Error reading response file '{0}'", filename);
+                return false;
+            }
+
+            return lines.Select(line => line.Trim())
+                        .Where(line => !string.IsNullOrEmpty(line))
+                        .All(line => ParseArgument(line));
         }
 
 
@@ -213,16 +230,15 @@ namespace Shared
             Console.Error.WriteLine();
             Console.Error.WriteLine("Usage: {0} {1}", name, string.Join(" ", requiredUsageHelp));
 
-            if (optionalUsageHelp.Count > 0)
-            {
-                Console.Error.WriteLine();
-                Console.Error.WriteLine("Options:");
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("Options:");
 
-                foreach (string optional in optionalUsageHelp)
-                {
-                    Console.Error.WriteLine("    {0}", optional);
-                }
+            foreach (string optional in optionalUsageHelp)
+            {
+                Console.Error.WriteLine("    {0}", optional);
             }
+
+            Console.Error.WriteLine("    @responseFile");
         }
 
 

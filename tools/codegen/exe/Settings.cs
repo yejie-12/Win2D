@@ -1,21 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-using System.Diagnostics;
-using System.Xml.Serialization;
 using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using System;
+using System.Xml.Serialization;
 
 namespace CodeGen
 {
@@ -87,7 +75,10 @@ namespace CodeGen
 
                 [XmlAttributeAttribute]
                 public string Namespace;
-                
+
+                [XmlAttributeAttribute]
+                public string WinVer;
+
                 [XmlElement("Field")]
                 public List<EnumValue> Values { get; set; }
             }
@@ -133,11 +124,26 @@ namespace CodeGen
                 [XmlAttributeAttribute]
                 public string ProjectedNameOverride;
 
+                [XmlAttributeAttribute]
+                public string CLSIDOverride;
+
+                [XmlAttributeAttribute]
+                public string WinVer;
+
+                [XmlAttributeAttribute]
+                public string IsSupportedCheck;
+
                 [XmlElement("Input")]
                 public List<EffectProperty> Inputs { get; set; }
 
                 [XmlElement("Property")]
                 public List<EffectProperty> Properties { get; set; }
+
+                [XmlElement]
+                public List<string> CustomStaticMethodIdl { get; set; }
+
+                [XmlElement]
+                public List<string> CustomStaticMethodDecl { get; set; }
             }
 
             public class Namespace
@@ -182,7 +188,7 @@ namespace CodeGen
                 public string Value;
             }
 
-            public class SubnamespaceNode
+            public class RootNamespaceNode
             {
                 [XmlAttributeAttribute]
                 public string Value;
@@ -206,8 +212,8 @@ namespace CodeGen
                 [XmlElement("FilenameBase")]
                 public FilenameBaseNode FilenameBase;
 
-                [XmlElement("Subnamespace")]
-                public SubnamespaceNode Subnamespace;
+                [XmlElement("RootNamespace")]
+                public RootNamespaceNode RootNamespace;
             }
         }
     }

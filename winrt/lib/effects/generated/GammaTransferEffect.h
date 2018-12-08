@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -27,25 +19,29 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { na
         InspectableClass(RuntimeClass_Microsoft_Graphics_Canvas_Effects_GammaTransferEffect, BaseTrust);
 
     public:
-        GammaTransferEffect();
+        GammaTransferEffect(ICanvasDevice* device = nullptr, ID2D1Effect* effect = nullptr);
 
-        PROPERTY(RedAmplitude, float);
-        PROPERTY(RedExponent, float);
-        PROPERTY(RedOffset, float);
-        PROPERTY(RedDisable, boolean);
-        PROPERTY(GreenAmplitude, float);
-        PROPERTY(GreenExponent, float);
-        PROPERTY(GreenOffset, float);
-        PROPERTY(GreenDisable, boolean);
-        PROPERTY(BlueAmplitude, float);
-        PROPERTY(BlueExponent, float);
-        PROPERTY(BlueOffset, float);
-        PROPERTY(BlueDisable, boolean);
-        PROPERTY(AlphaAmplitude, float);
-        PROPERTY(AlphaExponent, float);
-        PROPERTY(AlphaOffset, float);
-        PROPERTY(AlphaDisable, boolean);
-        PROPERTY(ClampOutput, boolean);
-        PROPERTY(Source, IEffectInput*);
+        static IID const& EffectId() { return CLSID_D2D1GammaTransfer; }
+
+        EFFECT_PROPERTY(RedAmplitude, float);
+        EFFECT_PROPERTY(RedExponent, float);
+        EFFECT_PROPERTY(RedOffset, float);
+        EFFECT_PROPERTY(RedDisable, boolean);
+        EFFECT_PROPERTY(GreenAmplitude, float);
+        EFFECT_PROPERTY(GreenExponent, float);
+        EFFECT_PROPERTY(GreenOffset, float);
+        EFFECT_PROPERTY(GreenDisable, boolean);
+        EFFECT_PROPERTY(BlueAmplitude, float);
+        EFFECT_PROPERTY(BlueExponent, float);
+        EFFECT_PROPERTY(BlueOffset, float);
+        EFFECT_PROPERTY(BlueDisable, boolean);
+        EFFECT_PROPERTY(AlphaAmplitude, float);
+        EFFECT_PROPERTY(AlphaExponent, float);
+        EFFECT_PROPERTY(AlphaOffset, float);
+        EFFECT_PROPERTY(AlphaDisable, boolean);
+        EFFECT_PROPERTY(ClampOutput, boolean);
+        EFFECT_PROPERTY(Source, IGraphicsEffectSource*);
+
+        EFFECT_PROPERTY_MAPPING();
     };
 }}}}}

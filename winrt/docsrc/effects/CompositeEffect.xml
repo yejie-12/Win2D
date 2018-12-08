@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <doc>
@@ -20,21 +12,23 @@ under the License.
   <members>
   
     <member name="T:Microsoft.Graphics.Canvas.Effects.CompositeEffect">
-      <summary>Combines two or more images.</summary>
+      <summary>
+        Combines two or more images.
+      </summary>
       <remarks>
         <example>
           <p>Suppose, we have a cat and flower images loaded as <see cref="T:Microsoft.Graphics.Canvas.CanvasBitmap"/>, </p>
           <code>
             CompositeEffect compositeEffect = new CompositeEffect();
             compositeEffect.Mode = CompositeEffectMode.Add;
-            compositeEffect.Inputs.Add(cat);
-            compositeEffect.Inputs.Add(flower);
+            compositeEffect.Sources.Add(cat);
+            compositeEffect.Sources.Add(flower);
           </code>
           <p>Use the Draw event to display it:</p>
           <code>
             void myWidget_Draw(CanvasControl sender, CanvasDrawEventArgs args)
             {
-                args.DrawingSession.DrawImage(compositeEffect, new Point(42, 42));
+                args.DrawingSession.DrawImage(compositeEffect, 42, 42);
             }
           </code>
         </example>
@@ -45,25 +39,11 @@ under the License.
     <member name="M:Microsoft.Graphics.Canvas.Effects.CompositeEffect.#ctor">
       <summary>Initializes a new instance of the CompositeEffect class.</summary>
     </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.CompositeEffect.Dispose">
-      <summary>Releases all resources used by the CompositeEffect.</summary>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.CompositeEffect.EffectId">
-      <summary>Gets the unique identifier for the effect.</summary>
+    <member name="P:Microsoft.Graphics.Canvas.Effects.CompositeEffect.Sources">
+      <summary>Gets a collection of the input sources attached to the effect.</summary>
       <remarks>
-        <p>Generic way to query the type of an effect. EffectId is equal to the 
-           CLSID_D2D1Composite GUID specified in the SDK header d2d1effects.h.</p>
+        <p>Composite effect can accept multiple inputs. Use the returned vector to add, remove or change attached sources.</p>
       </remarks>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.CompositeEffect.Inputs">
-      <summary>Gets a collection of inputs attached to the effect.</summary>
-      <remarks>
-        <p>Composite effect can accept multiply inputs. Use return vector to add, remove or change attached sources.</p>
-      </remarks>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.CompositeEffect.Properties">
-      <summary>Gets the collection of properties specific to the current effect.</summary>
-      <inheritdoc/>
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.CompositeEffect.Mode">
       <summary>Gets and sets composite mode for effect processing.</summary>
@@ -72,12 +52,8 @@ under the License.
       </remarks>
     </member>
     
-    <member name="M:Microsoft.Graphics.Canvas.Effects.CompositeEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession)">
-      <summary>Retrieves the bounds of this CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0), and identity transform on the specified drawing session.</summary>
-    </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.CompositeEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession,Microsoft.Graphics.Canvas.Numerics.Matrix3x2)">
-      <summary>Retrieves the bounds of the CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0) with the specified transform transform on the specified drawing session.</summary>
-    </member>
+    <inherittemplate name="EffectTemplate" replacement="CompositeEffect" />
+    <inherittemplate name="ICanvasEffectTemplate" replacement="CompositeEffect" />
     
   </members>
 </doc>

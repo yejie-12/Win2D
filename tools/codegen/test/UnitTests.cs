@@ -1,21 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-using System;
-using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Text;
-using System.Xml.Serialization;
 using System.Collections.Generic;
+using System.IO;
 
 namespace CodeGen.Test
 {
@@ -57,6 +46,8 @@ namespace CodeGen.Test
         [DeploymentItem("Deployed Files/D2DTypes.xml", "codegen/effects/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes2.xml", "codegen/effects/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes3.xml", "codegen/effects/in/apiref")]
+        [DeploymentItem("Deployed Files/D2DTypes4.xml", "codegen/effects/in/apiref")]
+        [DeploymentItem("Deployed Files/D2DSvgTypes.xml", "codegen/effects/in/apiref")]
         public void OutputEffectsIsSync()
         {
             //
@@ -91,8 +82,8 @@ namespace CodeGen.Test
             FileInfo[] actualGeneratedFiles = actualDirectoryInfo.GetFiles();
 
             // Ensure the correct number of files was generated.
-            const int expectedEffectCount = 37;
-            Assert.AreEqual(expectedEffectCount * 3 + 1, expectedGeneratedFiles.Length);
+            const int expectedEffectCount = 59;
+            Assert.AreEqual(expectedEffectCount * 3 + 2, expectedGeneratedFiles.Length);
             Assert.AreEqual(expectedGeneratedFiles.Length, actualGeneratedFiles.Length);
 
             // For each codegenned file in the tree, ensure it was output to the test folder.
@@ -100,12 +91,13 @@ namespace CodeGen.Test
         }
 
         [TestMethod]
-        [DeploymentItem("Deployed Files/Canvas.codegen.cpp", "codegen/expected")]
         [DeploymentItem("Deployed Files/Canvas.codegen.idl", "codegen/expected")]
         [DeploymentItem("Deployed Files/D2DEffectAuthor.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes2.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes3.xml", "codegen/in/apiref")]
+        [DeploymentItem("Deployed Files/D2DTypes4.xml", "codegen/in/apiref")]
+        [DeploymentItem("Deployed Files/D2DSvgTypes.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/Settings.xml", "codegen/in")]
         public void OutputIsInSync()
         {
@@ -139,7 +131,7 @@ namespace CodeGen.Test
             FileInfo[] actualGeneratedFiles = actualDirectoryInfo.GetFiles(); // Used for .Length only
 
             // Ensure the correct number of files was generated.
-            Assert.AreEqual(2, expectedGeneratedFiles.Length);
+            Assert.AreEqual(1, expectedGeneratedFiles.Length);
             Assert.AreEqual(expectedGeneratedFiles.Length, actualGeneratedFiles.Length);
 
             // For each codegenned file in the tree, ensure it was output to the test folder.
@@ -165,6 +157,8 @@ namespace CodeGen.Test
         [DeploymentItem("Deployed Files/D2DTypes.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes2.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/D2DTypes3.xml", "codegen/in/apiref")]
+        [DeploymentItem("Deployed Files/D2DTypes4.xml", "codegen/in/apiref")]
+        [DeploymentItem("Deployed Files/D2DSvgTypes.xml", "codegen/in/apiref")]
         [DeploymentItem("Deployed Files/Settings.xml", "codegen/in")]
         public void OverridesAreWellFormed()
         {
@@ -174,7 +168,6 @@ namespace CodeGen.Test
 
             Overrides.XmlBindings.Settings overridesXmlData = XmlBindings.Utilities.LoadXmlData<Overrides.XmlBindings.Settings>(inputDir, "Settings.xml");
             Formatter.Prefix = overridesXmlData.Prefix.Value;
-            Formatter.Subnamespace = overridesXmlData.Subnamespace.Value;
 
             List<D2DTypes> typeDocuments = new List<D2DTypes>();
             Dictionary<string, QualifiableType> typeDictionary = new Dictionary<string, QualifiableType>();

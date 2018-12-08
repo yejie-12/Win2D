@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <doc>
@@ -24,7 +16,7 @@ under the License.
         Lighting effect creates an image that appears to be an illuminated non-reflective 
         surface where the light source is limited to a directed cone of light. This 
         effect uses the alpha channel as a height map, and lights it with a point light 
-        source.
+        source. Note, height map is not supported with Composition.
       </summary>
       <remarks>
         <p>This Windows Runtime type corresponds to the 
@@ -34,11 +26,11 @@ under the License.
     <member name="M:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.#ctor">
       <summary>Initializes a new instance of the SpotDiffuseEffect class.</summary>
     </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.Dispose">
-      <summary>Releases all resources used by the SpotDiffuseEffect.</summary>
-    </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.Source">
       <summary>Gets or sets the input source for SpotDiffuse effect.</summary>
+      <remarks>
+        This property is initialized to null.
+      </remarks>
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.LimitingConeAngle">
       <summary>Angle (in radians) that restricts the region where light is projected.
@@ -53,14 +45,17 @@ under the License.
     <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.LightColor">
       <summary>Color of the incoming light. Default value white.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.HeightMapScale">
+    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.LightColorHdr">
+      <summary>High-dynamic-range color of the incoming light. Default value white.</summary>
+    </member>
+    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.HeightMapScale" NoComposition="true">
       <summary>Height map scale factor in the Z direction. Default value 1.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.HeightMapKernelSize">
+    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.HeightMapKernelSize" NoComposition="true">
       <summary>Size of the Sobel filter kernel used to convert the input heightmap to 
                surface normal vectors. Default value (1,1).</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.HeightMapInterpolationMode">
+    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.HeightMapInterpolationMode" NoComposition="true">
       <summary>Interpolation mode used to filter the height map.
                Default value <see cref="F:Microsoft.Graphics.Canvas.CanvasImageInterpolation.Linear"/>.</summary>
     </member>
@@ -70,28 +65,9 @@ under the License.
     <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.DiffuseAmount">
       <summary>Intensity of the diffuse light. Default value 1.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.EffectId">
-      <summary>Gets the unique identifier for the effect.</summary>
-      <remarks>
-        <p>Generic way to query the type of an effect. EffectId is equal to the 
-           CLSID_D2D1SpotDiffuse GUID specified in the SDK header d2d1effects.h.</p>
-      </remarks>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.Inputs">
-      <summary>Gets a collection of inputs attached to the effect.</summary>
-      <inheritdoc/>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.Properties">
-      <summary>Gets the collection of properties specific to the current effect.</summary>
-      <inheritdoc/>
-    </member>
     
-    <member name="M:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession)">
-      <summary>Retrieves the bounds of this CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0), and identity transform on the specified drawing session.</summary>
-    </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.SpotDiffuseEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession,Microsoft.Graphics.Canvas.Numerics.Matrix3x2)">
-      <summary>Retrieves the bounds of the CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0) with the specified transform transform on the specified drawing session.</summary>
-    </member>
+    <inherittemplate name="EffectTemplate" replacement="SpotDiffuseEffect" />
+    <inherittemplate name="ICanvasEffectTemplate" replacement="SpotDiffuseEffect" />
 
   </members>
 </doc>

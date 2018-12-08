@@ -1,18 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
-using namespace Microsoft::Graphics::Canvas;
 using namespace Windows::UI;
 
 TEST_CLASS(CanvasImageSourceTests)
@@ -45,5 +36,161 @@ TEST_CLASS(CanvasImageSourceTests)
                 delete canvasImageSource;
             });
     }
-};
 
+
+    TEST_METHOD(CanvasImageSource_Constructors)
+    {
+        Size size1{ 0, 0 };
+        Size size2{ 0, 0 };
+
+        RunOnUIThread(
+            [&]
+            {
+                auto creator = ref new StubResourceCreatorWithDpi(ref new CanvasDevice());
+
+                auto imageSource1 = ref new CanvasImageSource(creator, 23, 42);
+                auto imageSource2 = ref new CanvasImageSource(creator, Size{ 7, 21 });
+
+                size1 = imageSource1->Size;
+                size2 = imageSource2->Size;
+            });
+
+        Assert::AreEqual(size1, Size{ 23, 42 });
+        Assert::AreEqual(size2, Size{ 7, 21 });
+    }
+
+
+    TEST_METHOD(CanvasImageSource_MaxSizeError)
+    {
+        auto device = ref new CanvasDevice();
+        auto maxSize = device->MaximumBitmapSizeInPixels;
+        auto tooBig = NextValueRepresentableAsFloat(maxSize);
+        wchar_t msg[256];
+
+        Platform::COMException^ exception1;
+        Platform::COMException^ exception2;
+        Platform::COMException^ exception3;
+
+        RunOnUIThread(
+            [&]
+            {
+                try
+                {
+                    ref new CanvasImageSource(device, static_cast<float>(tooBig), 1, 96);
+                }
+                catch (Platform::COMException^ e)
+                {
+                    exception1 = e;
+                }
+
+                try
+                {
+                    ref new CanvasImageSource(device, 1, static_cast<float>(tooBig), 96);
+                }
+                catch (Platform::COMException^ e)
+                {
+                    exception2 = e;
+                }
+        
+                try
+                {
+                    ref new CanvasImageSource(device, static_cast<float>(tooBig) / 2, 1, 192);
+                }
+                catch (Platform::COMException^ e)
+                {
+                    exception3 = e;
+                }
+            });
+
+        swprintf_s(msg, L"Cannot create CanvasImageSource sized %d x 1; MaximumBitmapSizeInPixels for this device is %d.", tooBig, maxSize);
+        ExpectCOMException(E_INVALIDARG, msg, [&] { throw exception1; });
+
+        swprintf_s(msg, L"Cannot create CanvasImageSource sized 1 x %d; MaximumBitmapSizeInPixels for this device is %d.", tooBig, maxSize);
+        ExpectCOMException(E_INVALIDARG, msg, [&] { throw exception2; });
+
+        swprintf_s(msg, L"Cannot create CanvasImageSource sized %d x 2; MaximumBitmapSizeInPixels for this device is %d.", tooBig, maxSize);
+        ExpectCOMException(E_INVALIDARG, msg, [&] { throw exception3; });
+    }
+
+
+    TEST_METHOD(CanvasImageSource_DrawOnWrongThread)
+    {
+        auto device = ref new CanvasDevice();
+        auto multithread = GetDXGIInterface<ID3D10Multithread>(device);
+
+        CanvasImageSource^ imageSource;
+        CanvasVirtualImageSource^ virtualImageSource;
+
+        RunOnUIThread(
+            [&]
+            {
+                imageSource = ref new CanvasImageSource(device, 1, 1, 96);
+                virtualImageSource = ref new CanvasVirtualImageSource(device, 1, 1, 96);
+
+                // Drawing on the UI thread is always fine.
+                delete imageSource->CreateDrawingSession(Colors::Black);
+                delete virtualImageSource->CreateDrawingSession(Colors::Black, Rect{ 0, 0, 1, 1 });
+            });
+
+        // CanvasImageSource does not support drawing off the UI thread.
+        ExpectCOMException(RPC_E_WRONG_THREAD,
+            [&]
+            {
+                imageSource->CreateDrawingSession(Colors::Black);
+            });
+
+        // CanvasVirtualImageSource can draw on any thread, and automatically turns on device multithread protection to enable this.
+        Assert::IsFalse(!!multithread->GetMultithreadProtected());
+
+        virtualImageSource->CreateDrawingSession(Colors::Black, Rect{ 0, 0, 1, 1 });
+
+        Assert::IsTrue(!!multithread->GetMultithreadProtected());
+    }
+
+
+    TEST_METHOD(CanvasImageSource_NestedBeginDraw)
+    {
+        Platform::COMException^ exception1;
+        Platform::COMException^ exception2;
+
+        RunOnUIThread(
+            [&]
+            {
+                auto device = ref new CanvasDevice();
+
+                auto imageSource = ref new CanvasImageSource(device, 1, 1, 96);
+                auto virtualImageSource = ref new CanvasVirtualImageSource(device, 1, 1, 96);
+
+                auto drawingSession = imageSource->CreateDrawingSession(Colors::Black);
+
+                try
+                {
+                    imageSource->CreateDrawingSession(Colors::Black);
+                }
+                catch (Platform::COMException^ e)
+                {
+                    exception1 = e;
+                }
+
+                delete drawingSession;
+
+                drawingSession = virtualImageSource->CreateDrawingSession(Colors::Black, Rect{ 0, 0, 1, 1 });
+
+                try
+                {
+                    virtualImageSource->CreateDrawingSession(Colors::Black, Rect{ 0, 0, 1, 1 });
+                }
+                catch (Platform::COMException^ e)
+                {
+                    exception2 = e;
+                }
+        
+                delete drawingSession;
+        });
+
+        auto msg = L"The last drawing session returned by CreateDrawingSession must be disposed before a new one can be created.";
+
+        ExpectCOMException(E_FAIL, msg, [&] { throw exception1; });
+        ExpectCOMException(E_FAIL, msg, [&] { throw exception2; });
+    }
+};

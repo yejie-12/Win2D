@@ -1,19 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
-using namespace Microsoft::Graphics::Canvas::DirectX;
 using namespace Microsoft::Graphics::Canvas::Effects;
+using namespace WinRTDirectX;
 
 TEST_CLASS(CanvasImageTests)
 {
@@ -69,9 +61,9 @@ TEST_CLASS(CanvasImageTests)
                         device,
                         1,
                         1,
+                        dpi,
                         DirectXPixelFormat::B8G8R8A8UIntNormalized,
-                        CanvasAlphaMode::Premultiplied,
-                        dpi);
+                        CanvasAlphaMode::Premultiplied);
 
                     ICanvasImage^ testImage;
                     Rect expectedBounds;
@@ -89,8 +81,8 @@ TEST_CLASS(CanvasImageTests)
                         expectedBounds = Rect(0, 0, bitmapWidth, bitmapHeight);
                     }
 
-                    Numerics::Matrix3x2 someTransform = { 1, 2, 3, 5, 8, 13 };
-                    Numerics::Matrix3x2 scaleAndTranslate = { 2, 0, 0, 2, 123, 456 };
+                    float3x2 someTransform = { 1, 2, 3, 5, 8, 13 };
+                    float3x2 scaleAndTranslate = { 2, 0, 0, 2, 123, 456 };
 
                     CanvasDrawingSession^ drawingSession = renderTargetBitmap->CreateDrawingSession();
                     drawingSession->Transform = someTransform;
@@ -101,18 +93,18 @@ TEST_CLASS(CanvasImageTests)
                     Assert::AreEqual(expectedBounds, bounds);
 
                     // Ensure GetBounds didn't scramble the transform.
-                    Assert::AreEqual(someTransform, drawingSession->Transform);
+                    Assert::AreEqual<float3x2>(someTransform, drawingSession->Transform);
 
                     // While specifying transform. Ensure returned bounds are correct.
                     bounds = testImage->GetBounds(drawingSession, scaleAndTranslate);
                     Assert::AreEqual(Rect(
-                        scaleAndTranslate.M31 + (expectedBounds.Left * scaleAndTranslate.M11),
-                        scaleAndTranslate.M32 + (expectedBounds.Top * scaleAndTranslate.M22),
-                        expectedBounds.Width * scaleAndTranslate.M11,
-                        expectedBounds.Height * scaleAndTranslate.M22), bounds);
+                        scaleAndTranslate.m31 + (expectedBounds.Left * scaleAndTranslate.m11),
+                        scaleAndTranslate.m32 + (expectedBounds.Top * scaleAndTranslate.m22),
+                        expectedBounds.Width * scaleAndTranslate.m11,
+                        expectedBounds.Height * scaleAndTranslate.m22), bounds);
 
                     // Ensure GetBounds didn't scramble the transform.
-                    Assert::AreEqual(someTransform, drawingSession->Transform);
+                    Assert::AreEqual<float3x2>(someTransform, drawingSession->Transform);
                 }
             }
         }

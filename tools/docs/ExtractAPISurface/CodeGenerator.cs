@@ -1,22 +1,14 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using System.Xml.Linq;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.IO;
+using System.Xml.Linq;
 
 namespace ExtractAPISurface
 {
@@ -184,7 +176,7 @@ namespace ExtractAPISurface
             // runtimeclasses use inheritence through extending DependencyObject.
             //
 
-            output.WriteLine("public {0} class {1}{2}", modifier, type.Name, FormatBaseTypes(type));
+            output.WriteLine("public {0} partial class {1}{2}", modifier, type.Name, FormatBaseTypes(type));
 
             using (output.WriteBraces())
             {
@@ -547,15 +539,15 @@ namespace ExtractAPISurface
         }
 
 
+        // The CLR maps some special WinRT types to equivalents from these assemblies, so these count as
+        // WinRT references even though we can't tell that from relecting over the .NET version of the type.
+        static string[] magicWinRTAssemblies = { "System.Runtime.WindowsRuntime", "System.Numerics" };
+
         // Writes dummy versions of WinRT system types, which are not part of our API but needed to compile the generated C#.
         void WriteReferencedTypePlaceholders()
         {
-            // The CLR maps some special WinRT types to equivalents from this assembly, so these count as
-            // WinRT references even though we can't tell that from relecting over the .NET version of the type.
-            const string magicWinRTAssembly = "System.Runtime.WindowsRuntime";
-
             var placeholders = (from type in seenTypes
-                                where assemblies.TypeIsFromReferenceAssembly(type) || type.Assembly.GetName().Name == magicWinRTAssembly
+                                where assemblies.TypeIsFromReferenceAssembly(type) || magicWinRTAssemblies.Contains(type.Assembly.GetName().Name)
                                 where !placeholdersWritten.Contains(type)
                                 select type).ToList();
 

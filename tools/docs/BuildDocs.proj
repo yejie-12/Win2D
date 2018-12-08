@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="BuildDocs" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <Import Project="$(MsBuildThisFileDirectory)..\..\build\Win2D.common.props" />
+  <Import Project="$(MsBuildThisFileDirectory)..\..\build\Win2D.cs.props" />
+  <Import Project="$(MSBuildThisFileDirectory)DocItems.proj" />
+
+  <ItemGroup>
+    <NuGetRestore Include="$(MSBuildThisFileDirectory)packages.config" />
+  </ItemGroup>
 
 
   <!-- Settings -->
@@ -14,26 +19,22 @@
 
   <!-- Binaries containing the API to be documented -->
   <ItemGroup>
-    <InputAssembly Include="$(BinariesDirectory)\Windowsx86\$(Configuration)\winrt.dll.windows\Microsoft.Graphics.Canvas.winmd">
+    <InputAssembly Include="$(BinariesDirectory)\uapx86\$(Configuration)\winrt.dll.uap\Microsoft.Graphics.Canvas.winmd">
       <DocSrc>..\..\winrt\docsrc\*.xml;..\..\winrt\docsrc\effects\*.xml</DocSrc>
-    </InputAssembly>
-
-    <InputAssembly Include="$(BinariesDirectory)\Windowsx86\$(Configuration)\DotNetNumerics.Windows\Microsoft.Graphics.Canvas.Numerics.dll">
-      <DocSrc>..\..\numerics\DotNet\docsrc\*.xml</DocSrc>
-      <References>$(IntermediateOutputPath)Microsoft.Graphics.Canvas.winmd</References>
     </InputAssembly>
   </ItemGroup>
 
 
   <!-- Other files that are not part of the API, but which define types used by it -->
   <ItemGroup>
-    <ReferenceAssembly Include="$(WindowsSdkDir)References\CommonConfiguration\Neutral\Windows.winmd" />
+    <ReferenceAssembly Include="$(registry:HKEY_LOCAL_MACHINE\Software\Microsoft\Windows Kits\Installed Roots@KitsRoot10)UnionMetadata\$(TargetPlatformVersion)\Windows.winmd" />
   </ItemGroup>
 
 
   <!-- Tools used to generate the documentation -->
   <ItemGroup>
     <ToolProject Include="DocDiff\DocDiff.csproj" Condition="!$(IntellisenseOnly)" />
+    <ToolProject Include="DocPreprocess\DocPreprocess.csproj" />
     <ToolProject Include="ExtractAPISurface\ExtractAPISurface.csproj" Condition="!$(IntellisenseOnly)" />
     <ToolProject Include="MergeIntellisense\MergeIntellisense.csproj" />
   </ItemGroup>
@@ -41,7 +42,7 @@
 
   <!-- Master target just chains to a bunch of workers -->
   <Target Name="BuildDocs"
-          DependsOnTargets="BuildTools; ExtractAPISurface; CompileAPISurface; DiffDocs; RunSandcastle; MergeIntellisense" />
+          DependsOnTargets="BuildTools; ExtractAPISurface; CompileAPISurface; PreprocessDocs; DiffDocs; RunSandcastle; MergeIntellisense" />
 
 
   <!-- Build our custom tools -->
@@ -61,13 +62,22 @@
 
 
   <!-- Compile the generated C# code to create new assemblies -->
-  <Target Name="CompileAPISurface" Condition="!$(IntellisenseOnly)">
+  <Target Name="CompileAPISurface" Condition="!$(IntellisenseOnly)" DependsOnTargets="RestoreNuGetPackages">
+    <PropertyGroup>
+      <FrameworkRoot>$(MSBuildThisFileDirectory)..\..\packages\System.Runtime.4.0.20\ref\dotnet</FrameworkRoot>
+    </PropertyGroup>
 
-    <Csc Sources="$(IntermediateOutputPath)%(InputAssembly.Filename).cs"
+    <ItemGroup>
+      <FrameworkAssembly Include="$(FrameworkRoot)\System.Runtime.dll" />
+    </ItemGroup>
+
+    <Csc Sources="$(IntermediateOutputPath)%(InputAssembly.Filename).cs;%(InputAssembly.AdditionalApiDescription)"
          OutputAssembly="$(IntermediateOutputPath)%(InputAssembly.Filename)%(InputAssembly.Extension)"
          DocumentationFile="$(IntermediateOutputPath)%(InputAssembly.Filename).xml"
-         References="%(InputAssembly.References)"
+         References="%(InputAssembly.References);@(FrameworkAssembly)"
          TargetType="library"
+         NoConfig="true"
+         NoStandardLib="true"
          DisabledWarnings="67;1591;108" />
   </Target>
 
@@ -83,15 +93,40 @@
 
     <PropertyGroup>
       <DocDiffTool>$(BinariesDirectory)\WindowsAnyCPU\$(Configuration)\DocDiff\DocDiff.exe</DocDiffTool>
+      <DocDiffResponseFile>$(IntermediateOutputPath)DocDiff.args</DocDiffResponseFile>
     </PropertyGroup>
 
-    <Exec Command="&quot;$(DocDiffTool)&quot; /LogMissingDocs:&quot;$(IntermediateOutputPath)MissingDocs.xml&quot; @(DocSrc->'/DocSrc:&quot;%(Identity)&quot;', ' ') @(InputAssembly->'/ApiRef:&quot;$(IntermediateOutputPath)%(Filename).xml&quot;', ' ')" />
+    <WriteLinesToFile File="$(DocDiffResponseFile)" Lines="@(DocSrc->'/DocSrc:%(Filename)%(Extension)')" Overwrite="true" />
+    <WriteLinesToFile File="$(DocDiffResponseFile)" Lines="@(WildcardConceptual->'/AmlSrc:%(Identity)')" Overwrite="false" />
+    <WriteLinesToFile File="$(DocDiffResponseFile)" Lines="@(InputAssembly->'/ApiRef:$(IntermediateOutputPath)%(Filename).xml')" Overwrite="false" />
+
+    <Exec Command="&quot;$(DocDiffTool)&quot; /LogMissingDocs:&quot;$(IntermediateOutputPath)MissingDocs.xml&quot; /DocSrcPath:&quot;$(IntermediateOutputPath)docsrc&quot; @$(DocDiffResponseFile)" />
+  </Target>
+
+
+  <!-- Preprocess the docsrc XML files to insert things like [Win10] tags -->
+  <Target Name="PreprocessDocs">
+
+    <ItemGroup>
+      <DocSrc Remove="@(DocSrc)" />
+      <DocSrc Include="%(InputAssembly.DocSrc)" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <DocPreprocessTool>$(BinariesDirectory)\WindowsAnyCPU\$(Configuration)\DocPreprocess\DocPreprocess.exe</DocPreprocessTool>
+      <DocPreprocessResponseFile>$(IntermediateOutputPath)DocPreprocess.args</DocPreprocessResponseFile>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile File="$(DocPreprocessResponseFile)" Lines="@(DocSrc)" Overwrite="true" />
+    <WriteLinesToFile File="$(DocPreprocessResponseFile)" Lines="@(WildcardConceptual->'/AmlSrc:%(Identity)')" Overwrite="false" />
+
+    <Exec Command="&quot;$(DocPreprocessTool)&quot; /LayoutContent:$(MsBuildThisFileDirectory)Layout.content /DocSrcOutput:$(IntermediateOutputPath)docsrc /TopicsOutput:$(IntermediateOutputPath)topics @$(DocPreprocessResponseFile)" />
   </Target>
 
 
   <!-- Run the Sandcastle tool to create HTML reference documentation -->
-  <Target Name="RunSandcastle" Condition="!$(IntellisenseOnly)">
-    <Error Condition="'$(SHFBROOT)' == ''" Text="Sandcastle not found. Get it at http://shfb.codeplex.com." />
+  <Target Name="RunSandcastle" Condition="!$(IntellisenseOnly)" DependsOnTargets="RestoreNuGetPackages">
     <MSBuild Projects="BuildDocs.shfbproj" />
   </Target>
 
@@ -108,9 +143,14 @@
 
     <PropertyGroup>
       <MergeIntellisenseTool>$(BinariesDirectory)\WindowsAnyCPU\$(Configuration)\MergeIntellisense\MergeIntellisense.exe</MergeIntellisenseTool>
+      <MergeIntellisenseResponseFile>$(IntermediateOutputPath)MergeIntellisense.args</MergeIntellisenseResponseFile>
     </PropertyGroup>
 
-    <Exec Command="&quot;$(MergeIntellisenseTool)&quot; &quot;$(BinariesDirectory)\intellisense\%(InputAssembly.Filename).xml&quot; @(DocSrc, ' ')" />
+    <WriteLinesToFile File="$(MergeIntellisenseResponseFile)" Lines="@(DocSrc->'$(IntermediateOutputPath)docsrc\%(Filename)%(Extension)')" Overwrite="true" />
+
+    <Exec Command="&quot;$(MergeIntellisenseTool)&quot; &quot;$(BinariesDirectory)\intellisense\%(InputAssembly.Filename).xml&quot; @$(MergeIntellisenseResponseFile)" />
   </Target>
+
+  <Import Project="$(MsBuildThisFileDirectory)..\..\build\nuget-restore.targets" />
 
 </Project>

@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <topic id="Introduction" revisionNumber="1">
@@ -19,42 +11,52 @@ under the License.
     <introduction>
       <para>
         Win2D is an easy-to-use Windows Runtime API for immediate mode 2D graphics
-        rendering with GPU acceleration. It is available to C# and C++ developers writing
-        Windows Store apps for Windows 8.1 and Windows Phone 8.1. It utilizes the power of
-        Direct2D, and integrates seamlessly with XAML and ICoreWindow.
+        rendering with GPU acceleration. It is available to C#, C++ and VB developers
+        writing apps for the Windows Universal Platform (UWP). It utilizes the power
+        of Direct2D, and integrates seamlessly with XAML and CoreWindow.
       </para>
 
-      <para>
-        Win2D is work in progress and evolving rapidly. The goal of releasing this
-        code in an early, incomplete state is to solicit early developer feedback.
-      </para>
-
+      <para>Where to get it:</para>
       <list class="bullet">
         <listItem>
           <externalLink>
-            <linkText>Source code and issue tracking</linkText>
+            <linkText>NuGet package</linkText>
+            <linkUri>http://www.nuget.org/packages/Win2D.uwp</linkUri>
+          </externalLink>
+        </listItem>
+        <listItem>
+          <externalLink>
+            <linkText>Source code</linkText>
             <linkUri>http://github.com/Microsoft/Win2D</linkUri>
           </externalLink>
         </listItem>
+      </list>
+
+      <para>How to use it:</para>
+      <list class="bullet">
         <listItem>
           <externalLink>
-            <linkText>NuGet packages</linkText>
-            <linkUri>http://www.nuget.org/packages/Win2D</linkUri>
+            <linkText>Sample code</linkText>
+            <linkUri>http://github.com/Microsoft/Win2D-samples</linkUri>
           </externalLink>
+          -
+          <legacyItalic>
+            also available in the
+            <externalLink>
+              <linkText>Store</linkText>
+              <linkUri>https://www.microsoft.com/store/apps/9NBLGGGXWT9F</linkUri>
+            </externalLink>
+          </legacyItalic>
         </listItem>
+      </list>
+
+      <para>More info:</para>
+      <list class="bullet">
         <listItem>
           <externalLink>
-            <linkText>Features</linkText>
-            <linkUri>http://github.com/Microsoft/Win2D/wiki/Features</linkUri>
+            <linkText>Report a bug or ask a question</linkText>
+            <linkUri>http://github.com/Microsoft/Win2D/issues</linkUri>
           </externalLink>
-          - <legacyItalic>what's implemented so far</legacyItalic>
-        </listItem>
-        <listItem>
-          <externalLink>
-            <linkText>Backlog</linkText>
-            <linkUri>http://github.com/Microsoft/Win2D/wiki/Backlog</linkUri>
-          </externalLink>
-          - <legacyItalic>what we plan to add next</legacyItalic>
         </listItem>
         <listItem>
           <externalLink>
@@ -65,30 +67,28 @@ under the License.
       </list>
     </introduction>
 
-    <section>
+    <section address="GettingSetUp">
       <title>Getting set up</title>
 
       <content>
         <para>
-          Install Visual Studio:
+          <externalLink>
+            <linkText>Download and install Visual Studio</linkText>
+            <linkUri>https://www.visualstudio.com</linkUri>
+          </externalLink>:
         </para>
-        <list class="bullet">
-          <listItem>
-            Download <externalLink>
-              <linkText>here</linkText>
-              <linkUri>http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx</linkUri>
-            </externalLink>
-          </listItem>
-          <listItem>Recommended version: Visual Studio Community 2013 with Update 4</listItem>
-          <listItem>Minimum version: Visual Studio 2013 Update 2</listItem>
-          <listItem>If using Visual Studio Express, requires the 'for Windows' version (not 'for Windows Desktop')</listItem>
-        </list>
 
+        <list class="bullet">
+          <listItem>Minimum version: Visual Studio Community 2017</listItem>
+          <listItem>Visual Studio Tools for Universal Windows Apps 15.0.27428.01</listItem>
+          <listItem>Windows SDK 17134 (April 2018 Update)</listItem>
+        </list>
+        
         <para>Create your project:</para>
         <list class="bullet">
           <listItem>Go to 'File' -> 'New' -> 'Project...'</listItem>
-          <listItem>Select 'Visual C#' -> 'Store Apps' -> 'Universal Apps'</listItem>
-          <listItem>Create a 'Blank App (Universal Apps)'</listItem>
+          <listItem>Select 'Visual C#', 'Visual C++', or 'Visual Basic'</listItem>
+          <listItem>Create a 'Blank App (Universal Windows)'</listItem>
           <listItem>Enter a project name of your choosing</listItem>
           <listItem>Click 'OK'</listItem>
         </list>
@@ -97,10 +97,9 @@ under the License.
         <list class="bullet">
           <listItem>Go to 'Tools' -> 'NuGet Package Manager' -> 'Manage NuGet Packages for Solution...'</listItem>
           <listItem>Type 'Win2D' into the 'Search Online' box, and hit Enter</listItem>
-          <listItem>Select the 'Win2D' package and click 'Install', then 'OK'</listItem>
+          <listItem>Select the 'Win2D.uwp' package and click 'Install', then 'OK'</listItem>
           <listItem>Accept the license agreement</listItem>
           <listItem>Click 'Close'</listItem>
-          <listItem>Change Solution Platform from 'Any CPU' to 'x86'</listItem>
         </list>
       </content>
     </section>
@@ -108,46 +107,100 @@ under the License.
     <section>
       <title>Write some code</title>
       <content>
-        <para>Add a <codeEntityReference>T:Microsoft.Graphics.Canvas.CanvasControl</codeEntityReference> to your XAML page:</para>
+        <para>Add a <codeEntityReference>T:Microsoft.Graphics.Canvas.UI.Xaml.CanvasControl</codeEntityReference> to your XAML page:</para>
         <list class="bullet">
           <listItem>Double click on MainPage.xaml in Solution Explorer to open the XAML editor</listItem>
           <listItem>
-            Add the <codeEntityReference>N:Microsoft.Graphics.Canvas</codeEntityReference> namespace next to the existing xmlns statements:
+            Add the <codeEntityReference>N:Microsoft.Graphics.Canvas.UI.Xaml</codeEntityReference> namespace next to the existing xmlns statements:
             <code>
-              xmlns:canvas="using:Microsoft.Graphics.Canvas"
+              xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
             </code>
           </listItem>
           <listItem>
             Add a CanvasControl inside the existing Grid control:
             <code>
-              &lt;Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"&gt;
+              &lt;Grid&gt;
                   &lt;canvas:CanvasControl Draw="CanvasControl_Draw" ClearColor="CornflowerBlue"/&gt;
               &lt;/Grid&gt;
             </code>
           </listItem>
         </list>
 
-        <para>Edit MainPage.xaml.cs, and add some Win2D drawing code:</para>
-        <code>
-          using Windows.UI;
-          using Windows.UI.Xaml.Controls;
-          using Microsoft.Graphics.Canvas;
+        <para>Then add some Win2D drawing code.</para>
+        <list class="bullet">
+          <listItem>
+            If you created a C# project, edit MainPage.xaml.cs:
+            <code>
+              using Windows.UI;
+              using Windows.UI.Xaml.Controls;
+              using Microsoft.Graphics.Canvas.UI.Xaml;
 
-          public sealed partial class MainPage : Page
-          {
-              public MainPage()
+              public sealed partial class MainPage : Page
               {
-                  this.InitializeComponent();
+                  public MainPage()
+                  {
+                      this.InitializeComponent();
+                  }
+
+                  void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+                  {
+                      args.DrawingSession.DrawEllipse(155, 115, 80, 30, Colors.Black, 3);
+                      args.DrawingSession.DrawText("Hello, world!", 100, 100, Colors.Yellow);
+                  }
+              }
+            </code>
+          </listItem>
+
+          <listItem>
+            If you created a C++/CX project, edit MainPage.xaml.h and add a function declaration to the MainPage class:
+            <code>
+              void CanvasControl_Draw(Microsoft::Graphics::Canvas::UI::Xaml::CanvasControl^ sender,
+                                      Microsoft::Graphics::Canvas::UI::Xaml::CanvasDrawEventArgs^ args);
+            </code>
+            Then edit MainPage.xaml.cpp:
+            <code>
+              #include "pch.h"
+              #include "MainPage.xaml.h"
+
+              using namespace App1;
+              using namespace Windows::UI;
+              using namespace Microsoft::Graphics::Canvas::UI::Xaml;
+
+              MainPage::MainPage()
+              {
+                  InitializeComponent();
               }
 
-              void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+              void MainPage::CanvasControl_Draw(CanvasControl^ sender, CanvasDrawEventArgs^ args)
               {
-                  args.DrawingSession.DrawEllipse(155, 115, 80, 30, Colors.Black, 3);
-                  args.DrawingSession.DrawText("Hello, world!", 100, 100, Colors.Yellow);
+                  args->DrawingSession->DrawEllipse(155, 115, 80, 30, Colors::Black, 3);
+                  args->DrawingSession->DrawText("Hello, world!", 100, 100, Colors::Yellow);
               }
-          }
-        </code>
+            </code>
+          </listItem>
 
+          <listItem>
+            Or if you created a VB project, edit MainPage.xaml.vb:
+            <code>
+              Imports Windows.UI
+              Imports Windows.UI.Xaml.Controls
+              Imports Microsoft.Graphics.Canvas.UI.Xaml
+              
+              Public NotInheritable Class MainPage
+                  Inherits Page
+                  Public Sub New()
+                      Me.InitializeComponent()
+                  End Sub
+
+                  Private Sub CanvasControl_Draw(sender As CanvasControl, args As CanvasDrawEventArgs)
+                      args.DrawingSession.DrawEllipse(155, 115, 80, 30, Colors.Black, 3)
+                      args.DrawingSession.DrawText("Hello, world!", 100, 100, Colors.Yellow)
+                  End Sub
+              End Class
+            </code>
+          </listItem>
+        </list>
+        
         <para>
           If you prefer to build your own version of Win2D from source, see the 
           <externalLink>
@@ -159,5 +212,31 @@ under the License.
       </content>
     </section>
 
+    <section address="Legacy81">
+      <title>Legacy support for Windows 8.1</title>
+      
+      <content>
+        <para>
+          Win2D 1.21.0 was the last release to support the Windows 8.1 and Windows Phone 8.1 
+          platforms. From Win2D 1.22.0 onward, only the Windows Universal Platform (UWP) is 
+          supported.
+        </para>
+
+        <para>
+          Legacy Win2D support for Windows and Phone 8.1 is available as a
+          <externalLink>
+            <linkText>NuGet package</linkText>
+            <linkUri>http://www.nuget.org/packages/Win2D.win81</linkUri>
+          </externalLink>
+          and from the
+          <externalLink>
+            <linkText>win81 branch</linkText>
+            <linkUri>https://github.com/Microsoft/Win2D/tree/win81</linkUri>
+          </externalLink>
+          on github.
+        </para>
+      </content>
+    </section>
+    
   </developerConceptualDocument>
 </topic>

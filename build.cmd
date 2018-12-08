@@ -1,19 +1,19 @@
 @echo off
 
-IF "%VisualStudioVersion%" LSS "12.0" (
-    ECHO Please run this script from a Visual Studio 2013 Command Prompt.
-    PAUSE
-    GOTO END
+SETLOCAL
+
+IF "%VisualStudioVersion%" LSS "15.0" (
+    GOTO WRONG_COMMAND_PROMPT
 )
 
 WHERE /Q msbuild >NUL
 IF %ERRORLEVEL% NEQ 0 ( 
     ECHO Error: It appears that 'msbuild' is not available in this environment. 
-    ECHO Please run this script from a Visual Studio 2013 Command Prompt.
-    GOTO END
+    ECHO.
+    GOTO WRONG_COMMAND_PROMPT
 )
 
-msbuild "%~dp0Win2D.proj" /v:m /maxcpucount /p:BuildTests=false /p:BuildTools=false /p:BuildDocs=false
+msbuild "%~dp0Win2D.proj" /v:m /maxcpucount /nr:false /p:BuildTests=false /p:BuildTools=false /p:BuildDocs=false
 
 IF %ERRORLEVEL% NEQ 0 (
     ECHO Build failed; aborting.
@@ -30,5 +30,14 @@ IF %ERRORLEVEL% NEQ 0 (
 ECHO.
 
 CALL "%~dp0build\nuget\build-nupkg.cmd" local
+GOTO END
+
+
+:WRONG_COMMAND_PROMPT
+
+ECHO Please run this script from a Developer Command Prompt for VS2017
+ECHO.
+PAUSE
+GOTO END
 
 :END

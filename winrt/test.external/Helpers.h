@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
@@ -16,11 +8,21 @@
 #include <ppltasks.h>
 
 using namespace concurrency;
-using namespace Windows::Foundation;
+using namespace Microsoft::Graphics::Canvas::Brushes;
+using namespace Microsoft::Graphics::Canvas::Geometry;
+#if WINVER > _WIN32_WINNT_WINBLUE
+using namespace Microsoft::Graphics::Canvas::Svg;
+#endif
+using namespace Microsoft::Graphics::Canvas::Text;
+using namespace Microsoft::Graphics::Canvas::UI::Xaml;
+using namespace Microsoft::Graphics::Canvas::UI;
 using namespace Microsoft::Graphics::Canvas;
-using namespace Windows::UI::Core;
+using namespace WinRTDirectX;
 using namespace Windows::ApplicationModel::Core;
-using namespace Microsoft::Graphics::Canvas::DirectX::Direct3D11;
+using namespace Windows::Foundation::Numerics;
+using namespace Windows::Foundation;
+using namespace Windows::Graphics::Imaging;
+using namespace Windows::UI::Core;
 
 namespace Microsoft
 {
@@ -40,16 +42,16 @@ namespace Microsoft
                 return std::wstring(buf);
             }
 
-#define TO_STRING(T)                                            \
-            template<>                                          \
-            static inline std::wstring ToString<T>(T* value)    \
-            {                                                   \
-                return PointerToString(L#T, value);             \
+#define TO_STRING(T)                                    \
+            template<>                                  \
+            inline std::wstring ToString<T>(T* value)   \
+            {                                           \
+                return PointerToString(L#T, value);     \
             }
 
 #define TO_STRING_CX(T)                                                 \
             template<>                                                  \
-            static inline std::wstring ToString<T^>(T^ const& value)    \
+            inline std::wstring ToString<T^>(T^ const& value)           \
             {                                                           \
                 return PointerToString(L#T, reinterpret_cast<IInspectable*>(value)); \
             }
@@ -72,24 +74,33 @@ namespace Microsoft
             TO_STRING(ID2D1RadialGradientBrush);
             TO_STRING_CX(ICanvasImage);
             TO_STRING(IDXGISwapChain2);
+            TO_STRING(ID2D1RectangleGeometry);
+            TO_STRING(ID2D1EllipseGeometry);
+            TO_STRING(ID2D1RoundedRectangleGeometry);
+            TO_STRING(ID2D1PathGeometry);
+            TO_STRING(ID2D1GeometryRealization);
+            TO_STRING(ID2D1Factory);
+#if WINVER > _WIN32_WINNT_WINBLUE
+            TO_STRING_CX(ICanvasSvgElement);
+#endif
 
 #undef TO_STRING
 #undef TO_STRING_CX
 
             template<>
-            static inline std::wstring ToString<Windows::UI::Color>(Windows::UI::Color* value)
+            inline std::wstring ToString<Windows::UI::Color>(Windows::UI::Color* value)
             {
                 return value->ToString()->Data();
             }
 
             template<>
-            static inline std::wstring ToString<Windows::UI::Color>(Windows::UI::Color const& value)
+            inline std::wstring ToString<Windows::UI::Color>(Windows::UI::Color const& value)
             {
                 return L"Color";
             }
 
             template<>
-            static inline std::wstring ToString<Windows::Foundation::Size>(Windows::Foundation::Size const& value)
+            inline std::wstring ToString<Windows::Foundation::Size>(Windows::Foundation::Size const& value)
             {
                 wchar_t buf[256];
                 ThrowIfFailed(StringCchPrintf(
@@ -100,7 +111,18 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<Windows::Foundation::Rect>(Windows::Foundation::Rect const& value)
+            inline std::wstring ToString<BitmapSize>(BitmapSize const& value)
+            {
+                wchar_t buf[256];
+                ThrowIfFailed(StringCchPrintf(
+                    buf,
+                    _countof(buf),
+                    L"BitmapSize{%u,%u}", value.Width, value.Height));
+                return buf;
+            }
+
+            template<>
+            inline std::wstring ToString<Windows::Foundation::Rect>(Windows::Foundation::Rect const& value)
             {
                 wchar_t buf[256];
                 ThrowIfFailed(StringCchPrintf(
@@ -110,12 +132,8 @@ namespace Microsoft
                 return buf;
             }
 
-            // TODO #2642: Various helpers are now duplicated between
-            // test.external and test.internal.  We should find a way to share
-            // them.
-
             template<>
-            static inline std::wstring ToString<D2D1_RECT_F>(D2D1_RECT_F const& value)
+            inline std::wstring ToString<D2D1_RECT_F>(D2D1_RECT_F const& value)
             {
                 wchar_t buf[256];
                 ThrowIfFailed(StringCchPrintf(
@@ -130,41 +148,94 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<Microsoft::Graphics::Canvas::Numerics::Matrix3x2>(Microsoft::Graphics::Canvas::Numerics::Matrix3x2 const& value)
+            inline std::wstring ToString<float2>(float2 const& value)
             {
                 wchar_t buf[256];
                 ThrowIfFailed(StringCchPrintf(
                     buf,
                     _countof(buf),
-                    L"Numerics.Matrix{M11=%f,M12=%f,M21=%f,M22=%f,M31=%f,M32=%f}",
-                    value.M11, value.M12,
-                    value.M21, value.M22,
-                    value.M31, value.M32));
+                    L"Numerics.float2{%f,%f}",
+                    value.x, value.y));
+
+                return buf;
+            }
+
+            template<>
+            inline std::wstring ToString<float3>(float3 const& value)
+            {
+                wchar_t buf[256];
+                ThrowIfFailed(StringCchPrintf(
+                    buf,
+                    _countof(buf),
+                    L"Numerics.float3{%f,%f,%f}",
+                    value.x, value.y, value.z));
+
+                return buf;
+            }
+
+            template<>
+            inline std::wstring ToString<float4>(float4 const& value)
+            {
+                wchar_t buf[256];
+                ThrowIfFailed(StringCchPrintf(
+                    buf,
+                    _countof(buf),
+                    L"Numerics.float4{%f,%f,%f,%f}",
+                    value.x, value.y, value.z, value.w));
+
+                return buf;
+            }
+
+            template<>
+            inline std::wstring ToString<float3x2>(float3x2 const& value)
+            {
+                wchar_t buf[256];
+                ThrowIfFailed(StringCchPrintf(
+                    buf,
+                    _countof(buf),
+                    L"Numerics.float3x2{m11=%f,m12=%f,m21=%f,m22=%f,m31=%f,m32=%f}",
+                    value.m11, value.m12,
+                    value.m21, value.m22,
+                    value.m31, value.m32));
 
                 return buf;
             }
 
 #define CX_VALUE_TO_STRING(T)                                       \
             template<>                                              \
-            static inline std::wstring ToString<T>(T const& value)  \
+            inline std::wstring ToString<T>(T const& value)  \
             {                                                       \
                 return value.ToString()->Data();                    \
             }
             
-            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasHardwareAcceleration);
-            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasCapStyle);
-            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasLineJoin);
-            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasDashStyle);
-            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasStrokeTransformBehavior);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Geometry::CanvasCapStyle);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Geometry::CanvasLineJoin);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Geometry::CanvasDashStyle);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Geometry::CanvasStrokeTransformBehavior);
             CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasAntialiasing);
             CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasBlend);
-            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasTextAntialiasing);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Text::CanvasTextAntialiasing);
             CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasUnits);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasAlphaMode);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasImageInterpolation);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasBufferPrecision);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::CanvasColorSpace);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::UI::CanvasCreateResourcesReason);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Text::CanvasGlyphOrientation);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Text::CanvasTextDirection);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Text::CanvasTextMeasuringMode);
+            CX_VALUE_TO_STRING(DirectXPixelFormat);
+
+#if WINVER > _WIN32_WINNT_WINBLUE
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Effects::ColorManagementProfileType);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Effects::ColorManagementGamma);
+            CX_VALUE_TO_STRING(Microsoft::Graphics::Canvas::Effects::ExtendedColorSpace);
+#endif
 
 #undef CX_VALUE_TO_STRING
 
             template<>
-            static inline std::wstring ToString<D2D1_ANTIALIAS_MODE>(D2D1_ANTIALIAS_MODE const& value)
+            inline std::wstring ToString<D2D1_ANTIALIAS_MODE>(D2D1_ANTIALIAS_MODE const& value)
             {
                 switch (value)
                 {
@@ -175,7 +246,7 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<D2D1_PRIMITIVE_BLEND>(D2D1_PRIMITIVE_BLEND const& value)
+            inline std::wstring ToString<D2D1_PRIMITIVE_BLEND>(D2D1_PRIMITIVE_BLEND const& value)
             {
                 switch (value)
                 {
@@ -188,7 +259,7 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<D2D1_TEXT_ANTIALIAS_MODE>(D2D1_TEXT_ANTIALIAS_MODE const& value)
+            inline std::wstring ToString<D2D1_TEXT_ANTIALIAS_MODE>(D2D1_TEXT_ANTIALIAS_MODE const& value)
             {
                 switch (value)
                 {
@@ -201,7 +272,7 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<D2D1_UNIT_MODE>(D2D1_UNIT_MODE const& value)
+            inline std::wstring ToString<D2D1_UNIT_MODE>(D2D1_UNIT_MODE const& value)
             {
                 switch (value)
                 {
@@ -212,7 +283,7 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<D2D1_ALPHA_MODE>(D2D1_ALPHA_MODE const& value)
+            inline std::wstring ToString<D2D1_ALPHA_MODE>(D2D1_ALPHA_MODE const& value)
             {
                 switch (value)
                 {
@@ -225,7 +296,7 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<CanvasSwapChainRotation>(CanvasSwapChainRotation const& value)
+            inline std::wstring ToString<CanvasSwapChainRotation>(CanvasSwapChainRotation const& value)
             {
                 switch (value)
                 {
@@ -238,7 +309,142 @@ namespace Microsoft
             }
 
             template<>
-            static inline std::wstring ToString<Platform::Guid>(Platform::Guid const& value)
+            inline std::wstring ToString<CanvasDebugLevel>(CanvasDebugLevel const& value)
+            {
+                switch (value)
+                {
+                    case CanvasDebugLevel::None: return L"CanvasDebugLevel::None";
+                    case CanvasDebugLevel::Error: return L"CanvasDebugLevel::Error";
+                    case CanvasDebugLevel::Warning: return L"CanvasDebugLevel::Warning";
+                    case CanvasDebugLevel::Information: return L"CanvasDebugLevel::Information";
+                    default: assert(false); return L"<unknown CanvasDebugLevel>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<CanvasTextRenderingMode>(CanvasTextRenderingMode const& value)
+            {
+                switch (value)
+                {
+                    case CanvasTextRenderingMode::Default: return L"CanvasTextRenderingMode::Default";
+                    case CanvasTextRenderingMode::Aliased: return L"CanvasTextRenderingMode::Aliased";
+                    case CanvasTextRenderingMode::GdiClassic: return L"CanvasTextRenderingMode::GdiClassic";
+                    case CanvasTextRenderingMode::GdiNatural: return L"CanvasTextRenderingMode::GdiNatural";
+                    case CanvasTextRenderingMode::NaturalSymmetric: return L"CanvasTextRenderingMode::NaturalSymmetric";
+                    case CanvasTextRenderingMode::Outline: return L"CanvasTextRenderingMode::Outline";
+#if WINVER > _WIN32_WINNT_WINBLUE
+                    case CanvasTextRenderingMode::NaturalSymmetricDownsampled: return L"CanvasTextRenderingMode::NaturalSymmetricDownsampled";
+#endif
+                    default: assert(false); return L"<unknown CanvasTextRenderingMode>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<CanvasTextGridFit>(CanvasTextGridFit const& value)
+            {
+                switch (value)
+                {
+                    case CanvasTextGridFit::Default: return L"CanvasTextGridFit::Default";
+                    case CanvasTextGridFit::Disable: return L"CanvasTextGridFit::Disable";
+                    case CanvasTextGridFit::Enable: return L"CanvasTextGridFit::Enable";
+                    default: assert(false); return L"<unknown CanvasTextGridFit>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<CanvasTextTrimmingGranularity>(CanvasTextTrimmingGranularity const& value)
+            {
+                switch (value)
+                {
+                    case CanvasTextTrimmingGranularity::None: return L"CanvasDebugLevel::None";
+                    case CanvasTextTrimmingGranularity::Character: return L"CanvasDebugLevel::Character";
+                    case CanvasTextTrimmingGranularity::Word: return L"CanvasDebugLevel::Word";
+                    default: assert(false); return L"<unknown CanvasTextTrimmingGranularity>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<CanvasTrimmingSign>(CanvasTrimmingSign const& value)
+            {
+                switch (value)
+                {
+                    case CanvasTrimmingSign::None: return L"CanvasTrimmingSign::None";
+                    case CanvasTrimmingSign::Ellipsis: return L"CanvasTrimmingSign::Ellipsis";
+                    default: assert(false); return L"<unknown CanvasTrimmingSign>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<CanvasLineBreakCondition>(CanvasLineBreakCondition const& value)
+            {
+                switch (value)
+                {
+                    case CanvasLineBreakCondition::Neutral: return L"CanvasLineBreakCondition::Neutral";
+                    case CanvasLineBreakCondition::CanBreak: return L"CanvasLineBreakCondition::CanBreak";
+                    case CanvasLineBreakCondition::CannotBreak: return L"CanvasLineBreakCondition::CannotBreak";
+                    case CanvasLineBreakCondition::MustBreak: return L"CanvasLineBreakCondition::MustBreak";
+                    default: assert(false); return L"<unknown CanvasLineBreakCondition>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<D2D1_BUFFER_PRECISION>(D2D1_BUFFER_PRECISION const& value)
+            {
+                switch (value)
+                {
+                    case D2D1_BUFFER_PRECISION_UNKNOWN: return L"D2D1_BUFFER_PRECISION_UNKNOWN";
+                    case D2D1_BUFFER_PRECISION_8BPC_UNORM: return L"D2D1_BUFFER_PRECISION_8BPC_UNORM";
+                    case D2D1_BUFFER_PRECISION_8BPC_UNORM_SRGB: return L"D2D1_BUFFER_PRECISION_8BPC_UNORM_SRGB";
+                    case D2D1_BUFFER_PRECISION_16BPC_UNORM: return L"D2D1_BUFFER_PRECISION_16BPC_UNORM";
+                    case D2D1_BUFFER_PRECISION_16BPC_FLOAT: return L"D2D1_BUFFER_PRECISION_16BPC_FLOAT";
+                    case D2D1_BUFFER_PRECISION_32BPC_FLOAT: return L"D2D1_BUFFER_PRECISION_32BPC_FLOAT";
+                    default: assert(false); return L"<unknown D2D1_BUFFER_PRECISION>";
+                }
+            }
+
+#if WINVER > _WIN32_WINNT_WINBLUE
+            template<>
+            inline std::wstring ToString<CanvasSvgPathCommand>(CanvasSvgPathCommand const& value)
+            {
+                switch (value)
+                {
+                    case CanvasSvgPathCommand::ClosePath: return L"CanvasSvgPathCommand::ClosePath";
+                    case CanvasSvgPathCommand::MoveAbsolute: return L"CanvasSvgPathCommand::MoveAbsolute";
+                    case CanvasSvgPathCommand::MoveRelative: return L"CanvasSvgPathCommand::MoveRelative";
+                    case CanvasSvgPathCommand::LineAbsolute: return L"CanvasSvgPathCommand::LineAbsolute";
+                    case CanvasSvgPathCommand::LineRelative: return L"CanvasSvgPathCommand::LineRelative";
+                    case CanvasSvgPathCommand::CubicAbsolute: return L"CanvasSvgPathCommand::CubicAbsolute";
+                    case CanvasSvgPathCommand::CubicRelative: return L"CanvasSvgPathCommand::CubicRelative";
+                    case CanvasSvgPathCommand::QuadraticAbsolute: return L"CanvasSvgPathCommand::QuadraticAbsolute";
+                    case CanvasSvgPathCommand::QuadraticRelative: return L"CanvasSvgPathCommand::QuadraticRelative";
+                    case CanvasSvgPathCommand::ArcAbsolute: return L"CanvasSvgPathCommand::ArcAbsolute";
+                    case CanvasSvgPathCommand::ArcRelative: return L"CanvasSvgPathCommand::ArcRelative";
+                    case CanvasSvgPathCommand::HorizontalAbsolute: return L"CanvasSvgPathCommand::HorizontalAbsolute";
+                    case CanvasSvgPathCommand::HorizontalRelative: return L"CanvasSvgPathCommand::HorizontalRelative";
+                    case CanvasSvgPathCommand::VerticalAbsolute: return L"CanvasSvgPathCommand::VerticalAbsolute";
+                    case CanvasSvgPathCommand::VerticalRelative: return L"CanvasSvgPathCommand::VerticalRelative";
+                    case CanvasSvgPathCommand::CubicSmoothAbsolute: return L"CanvasSvgPathCommand::CubicSmoothAbsolute";
+                    case CanvasSvgPathCommand::CubicSmoothRelative: return L"CanvasSvgPathCommand::CubicSmoothRelative";
+                    case CanvasSvgPathCommand::QuadraticSmoothAbsolute: return L"CanvasSvgPathCommand::QuadraticSmoothAbsolute";
+                    case CanvasSvgPathCommand::QuadraticSmoothRelative: return L"CanvasSvgPathCommand::QuadraticSmoothRelative";
+                    default: assert(false); return L"<unknown CanvasSvgPathCommand>";
+                }
+            }
+
+            template<>
+            inline std::wstring ToString<CanvasSvgLengthUnits>(CanvasSvgLengthUnits const& value)
+            {
+                switch (value)
+                {
+                    case CanvasSvgLengthUnits::Number: return L"CanvasSvgLengthUnits::Number";
+                    case CanvasSvgLengthUnits::Percentage: return L"CanvasSvgLengthUnits::Percentage";
+                    default: assert(false); return L"<unknown CanvasSvgLengthUnits>";
+                }
+            }
+#endif
+
+            template<>
+            inline std::wstring ToString<Platform::Guid>(Platform::Guid const& value)
             {
                 Platform::Guid copy = value;
                 return copy.ToString()->Data();
@@ -247,17 +453,15 @@ namespace Microsoft
             inline bool operator==(Windows::UI::Color const& a, Windows::UI::Color const& b)
             {
                 return a.A == b.A &&
-                    a.R == b.R &&
-                    a.G == b.G &&
-                    a.B == b.B;
+                       a.R == b.R &&
+                       a.G == b.G &&
+                       a.B == b.B;
             }
 
-            inline bool operator==(Microsoft::Graphics::Canvas::Numerics::Matrix3x2 const& a, Microsoft::Graphics::Canvas::Numerics::Matrix3x2 const& b)
+            inline bool operator==(BitmapSize const& a, BitmapSize const& b)
             {
-                return
-                    a.M11 == b.M11 && a.M12 == b.M12 &&
-                    a.M21 == b.M21 && a.M22 == b.M22 &&
-                    a.M31 == b.M31 && a.M32 == b.M32;
+                return a.Width == b.Width &&
+                       a.Height == b.Height;
             }
 
             inline bool operator==(Windows::UI::Text::FontWeight const& a, Windows::UI::Text::FontWeight const& b)
@@ -268,9 +472,9 @@ namespace Microsoft
             inline bool operator==(D2D1_RECT_F const& a, D2D1_RECT_F const& b)
             {
                 return a.left == b.left &&
-                    a.top == b.top &&
-                    a.right == b.right &&
-                    a.bottom == b.bottom;
+                       a.top == b.top &&
+                       a.right == b.right &&
+                       a.bottom == b.bottom;
             }
         }
     }
@@ -436,7 +640,6 @@ inline void AssertTypeName(U^ obj)
     Assert::AreEqual(T::typeid->FullName, obj->GetType()->FullName);
 }
 
-
 template<typename T, typename U>
 inline ComPtr<T> GetDXGIInterface(U^ obj)
 {
@@ -445,12 +648,15 @@ inline ComPtr<T> GetDXGIInterface(U^ obj)
     return dxgi;
 }
 
-
 ComPtr<ID2D1DeviceContext1> CreateTestD2DDeviceContext(CanvasDevice^ device = nullptr);
 
 ComPtr<ID2D1Bitmap1> CreateTestD2DBitmap(D2D1_BITMAP_OPTIONS options, ComPtr<ID2D1DeviceContext1> deviceContext = nullptr);
 
 void VerifyDpiAndAlpha(ComPtr<ID2D1Bitmap1> const& d2dBitmap, float expectedDpi, D2D1_ALPHA_MODE expectedAlphaMode);
+
+bool GpuMatchesDescription(CanvasDevice^ canvasDevice, wchar_t const* description);
+
+int NextValueRepresentableAsFloat(int value);
 
 struct WicBitmapTestFixture
 {
@@ -485,7 +691,51 @@ inline void ExpectCOMException(HRESULT expectedHR, wchar_t const* expectedExcept
     {
         Assert::AreEqual<HRESULT>(expectedHR, e->HResult);
 
-        std::wstring msg(e->Message->Data());
-        Assert::IsTrue(msg.find(expectedExceptionText) != std::wstring::npos);
+        if (expectedExceptionText)
+        {
+            std::wstring msg(e->Message->Data());
+            Assert::IsTrue(msg.find(expectedExceptionText) != std::wstring::npos,
+                (std::wstring(L"Expected message: '") + expectedExceptionText + L"' actual: '" + msg + L"'").c_str());
+        }
     }
+}
+
+
+ref class StubResourceCreatorWithDpi sealed : public ICanvasResourceCreatorWithDpi
+{
+    CanvasDevice^ m_device;
+    float m_dpi;
+
+public:
+    StubResourceCreatorWithDpi(CanvasDevice^ device, float dpi = DEFAULT_DPI)
+        : m_device(device)
+        , m_dpi(dpi)
+    { }
+
+    property CanvasDevice^ Device
+    {
+        virtual CanvasDevice^ get() { return m_device; }
+    }
+
+    property float Dpi
+    {
+        virtual float get() { return m_dpi; }
+    }
+
+    virtual float ConvertPixelsToDips(int pixels) { Assert::Fail(L"Not implemented"); }
+    virtual int   ConvertDipsToPixels(float dips, CanvasDpiRounding roundingBehavior) { Assert::Fail(L"Not implemented"); }
+};
+
+
+inline int GetRefCount(IUnknown* unknown)
+{
+    unknown->AddRef();
+    return (int)unknown->Release();
+}
+
+
+template<typename T>
+inline int GetRefCount(T^ const& hatPointer)
+{
+    return GetRefCount(reinterpret_cast<IInspectable*>(hatPointer));
 }

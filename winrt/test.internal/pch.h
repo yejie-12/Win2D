@@ -1,97 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
 #pragma warning(disable: 4100)  // "unreferenced formal parameter"
 #pragma warning(disable: 4702)  // "unreachable code"
 
-#include "targetver.h"
+#include "../lib/pch.h"
 
 // Standard C++
-#include <assert.h>
-#include <algorithm>
-#include <functional>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <set>
-#include <vector>
-
-// Win32
-#include <corerror.h>
-#include <d2d1_2.h>
-#include <d3d11.h>
-#include <dwrite_2.h>
-#include <dxgi1_3.h>
-#include <DirectXMath.h>
-#include <wrl.h>
-#include <strsafe.h>
-#include <wincodec.h>
-#include <winstringwrapper.h>
-
-// WinRT
-#include <windows.applicationmodel.core.h>
-#include <windows.applicationmodel.h>
-#include <windows.graphics.display.h>
-#include <windows.ui.xaml.media.dxinterop.h>
+#include <array>
 
 // UnitTest
 #include <CppUnitTest.h>
-
-// Headers generated from IDL files
-#include <Canvas.abi.h>
-
-// Inc
-#include <AsyncOperation.h>
-#include <ClosablePtr.h>
-#include <ComArray.h>
-#include <Constants.h>
-#include <ErrorHandling.h>
-#include <Nullable.h>
-#include <ScopeWarden.h>
-#include <Utilities.h>
-#include <Vector.h>
-#include <WinStringBuilder.h>
-#include <WinStringWrapper.h>
-
-// Public
-#include <Microsoft.Graphics.Canvas.DirectX.Direct3D11.interop.h>
-#include <Microsoft.Graphics.Canvas.native.h>
-
-// winrt.lib
-#include <CanvasBitmap.h>
-#include <CanvasBrush.h>
-#include <CanvasControl.h>
-#include <CanvasDevice.h>
-#include <CanvasDrawingSession.h>
-#include <CanvasImageBrush.h>
-#include <CanvasImageSource.h>
-#include <CanvasImageSourceDrawingSessionAdapter.h>
-#include <CanvasLinearGradientBrush.h>
-#include <CanvasRadialGradientBrush.h>
-#include <CanvasRenderTarget.h>
-#include <CanvasSolidColorBrush.h>
-#include <CanvasStrokeStyle.h>
-#include <CanvasTextFormat.h>
-#include <Conversion.h>
-#include <DxgiUtilities.h>
-#include <RecreatableDeviceManager.h>
-#include <ResourceManager.h>
-#include <ResourceTracker.h>
-#include <ResourceWrapper.h>
-#include <Strings.h>
-#include <effects\CanvasEffect.h>
-
 
 // local headers
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -102,34 +24,51 @@ using namespace canvas;
 using namespace ABI::Microsoft::Graphics::Canvas;
 using namespace ABI::Microsoft::Graphics::Canvas::Effects;
 
-#include "Helpers.h"
-#include "MockCanvasDevice.h"
-#include "MockCanvasDrawingSession.h"
-#include "MockCanvasImageSourceDrawingSessionFactory.h"
-#include "MockCoreApplication.h"
-#include "MockD2DDevice.h"
-#include "MockD2DDeviceContext.h"
-#include "MockD2DFactory.h"
-#include "MockD2DSolidColorBrush.h"
-#include "MockD2DStrokeStyle.h"
-#include "MockD2DBitmapBrush.h"
-#include "MockD2DImageBrush.h"
-#include "MockD3D11Device.h"
-#include "MockWICFormatConverter.h"
-#include "MockD2DGradientStopCollection.h"
-#include "MockD2DLinearGradientBrush.h"
-#include "MockD2DRadialGradientBrush.h"
-#include "MockSurfaceImageSource.h"
-#include "MockSurfaceImageSourceFactory.h"
-#include "StubCanvasBrush.h"
-#include "StubCanvasDevice.h"
-#include "StubCanvasDrawingSessionAdapter.h"
-#include "StubD2DBrush.h"
-#include "StubD2DDeviceContext.h"
-#include "StubD2DResources.h"
-#include "StubD2DStrokeStyle.h"
-#include "StubImageControl.h"
-#include "StubSurfaceImageSource.h"
-#include "StubSurfaceImageSourceFactory.h"
-#include "StubUserControl.h"
+#include "../test.external/MockDxgiDevice.h"
+#include "../test.external/MockDxgiSurface.h"
 
+#include "utils/Helpers.h"
+#include "utils/ApiInformationTestAdapter.h"
+#include "mocks/MockHelpers.h"
+#include "mocks/MockAsyncAction.h"
+#include "mocks/MockDxgiSwapChain.h"
+#include "mocks/MockCompositor.h"
+#include "mocks/MockCompositionGraphicsDevice.h"
+#include "mocks/MockCompositionDrawingSurface.h"
+#include "mocks/MockCanvasDevice.h"
+#include "mocks/MockCanvasDrawingSession.h"
+#include "mocks/MockCanvasImageSourceDrawingSessionFactory.h"
+#include "mocks/MockCoreApplication.h"
+#include "mocks/MockD2DBitmapBrush.h"
+#include "mocks/MockD2DCommandList.h"
+#include "mocks/MockD2DDeviceContext.h"
+#include "mocks/MockD2DDevice.h"
+#include "mocks/MockD2DFactory.h"
+#include "mocks/MockD2DGradientStopCollection.h"
+#include "mocks/MockD2DImageBrush.h"
+#include "mocks/MockD2DLinearGradientBrush.h"
+#include "mocks/MockD2DRadialGradientBrush.h"
+#include "mocks/MockD2DSolidColorBrush.h"
+#include "mocks/MockD2DStrokeStyle.h"
+#include "mocks/MockD3D11Device.h"
+#include "xaml/MockRecreatableDeviceManager.h"
+#include "mocks/MockSurfaceImageSource.h"
+#include "mocks/MockSurfaceImageSourceFactory.h"
+#include "mocks/MockSuspendingEventArgs.h"
+#include "mocks/MockWICFormatConverter.h"
+#include "stubs/StubD2DResources.h"
+#include "stubs/StubCanvasDevice.h"
+#include "stubs/StubCanvasDrawingSessionAdapter.h"
+#include "stubs/StubD2DDeviceContext.h"
+#include "stubs/StubImageControl.h"
+#include "stubs/StubResourceCreatorWithDpi.h"
+#include "stubs/StubSurfaceImageSource.h"
+#include "stubs/StubSurfaceImageSourceFactory.h"
+#include "stubs/StubUserControl.h"
+#include "stubs/TestBitmapAdapter.h"
+#include "stubs/TestDeviceAdapter.h"
+#include "stubs/SwitchableTestBrushFixture.h"
+#include "xaml/CanvasControlTestAdapter.h"
+#include "xaml/ControlFixtures.h"
+#include "xaml/BasicControlFixture.h"
+#include "mocks/MockCanvasSwapChain.h"

@@ -1,20 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-using System.Diagnostics;
-using System.Xml.Serialization;
 using System.Collections.Generic;
-using System.Text;
-using System.IO;
+using System.Xml.Serialization;
 
 namespace CodeGen
 {
@@ -52,7 +41,7 @@ namespace CodeGen
 
     public class Namespace
     {
-        public Namespace(XmlBindings.Namespace xmlData, Overrides.XmlBindings.Namespace overrides, Dictionary<string, QualifiableType> typeDictionary, OutputDataTypes outputDataTypes)
+        public Namespace(XmlBindings.Namespace xmlData, Overrides.XmlBindings.Namespace overrides, string rootProjectedNamespace, Dictionary<string, QualifiableType> typeDictionary, OutputDataTypes outputDataTypes)
         {
             m_rawName = xmlData.Name;
 
@@ -66,19 +55,19 @@ namespace CodeGen
             }
 
             m_enums = new List<Enum>();
-            foreach(XmlBindings.Enum enumXml in xmlData.Enums)
+            foreach (XmlBindings.Enum enumXml in xmlData.Enums)
             {
                 Overrides.XmlBindings.Enum overridesEnum = null;
-                if(overrides != null) overridesEnum = overrides.Enums.Find(x => x.Name == enumXml.Name);
+                if (overrides != null) overridesEnum = overrides.Enums.Find(x => x.Name == enumXml.Name);
 
-                m_enums.Add(new Enum(this, enumXml, overridesEnum, typeDictionary, outputDataTypes));
+                m_enums.Add(new Enum(this, rootProjectedNamespace, enumXml, overridesEnum, typeDictionary, outputDataTypes));
             }
 
             m_structs = new List<Struct>();
             foreach (XmlBindings.Struct structXml in xmlData.Structs)
             {
                 Overrides.XmlBindings.Struct overridesStruct = null;
-                if(overrides != null) overridesStruct = overrides.Structs.Find(x => x.Name == structXml.Name);
+                if (overrides != null) overridesStruct = overrides.Structs.Find(x => x.Name == structXml.Name);
 
                 m_structs.Add(new Struct(this, structXml, overridesStruct, typeDictionary, outputDataTypes));
             }
@@ -87,7 +76,7 @@ namespace CodeGen
             foreach (XmlBindings.Interface interfaceXml in xmlData.Interfaces)
             {
                 Overrides.XmlBindings.Interface overridesInterface = null;
-                if(overrides != null) overridesInterface = overrides.Interfaces.Find(x => x.Name == interfaceXml.Name);
+                if (overrides != null) overridesInterface = overrides.Interfaces.Find(x => x.Name == interfaceXml.Name);
 
                 m_interfaces.Add(new Interface(this, interfaceXml, overridesInterface, typeDictionary));
             }

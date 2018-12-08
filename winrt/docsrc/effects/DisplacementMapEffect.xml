@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <doc>
@@ -19,8 +11,10 @@ under the License.
   </assembly>
   <members>
   
-    <member name="T:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect">
-      <summary>Displaces the pixels of an input image by the intensity values of a second image.</summary>
+    <member name="T:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect" NoComposition="true">
+      <summary>
+        Displaces the pixels of an input image by the intensity values of a second image.
+      </summary>
       <remarks>
         <p>The locations of the pixels in the output are determined using this formula:</p>
         <p>
@@ -36,15 +30,17 @@ under the License.
           This effect works on straight and premultiplied alpha images. The output alpha 
           format is the same as the input format.
         </p>
+        <p>
+          When using this effect with InvalidateSourceRectangle, GetRequiredSourceRectangle, or GetRequiredSourceRectangles,
+          its <see cref="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Source"/> property corresponds to source index #0,
+          and <see cref="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Displacement"/> to source index #1.
+        </p>
         <p>This Windows Runtime type corresponds to the 
           <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/hh706330.aspx">D2D Displacement map effect</a>.</p>
       </remarks>
     </member>
     <member name="M:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.#ctor">
       <summary>Initializes a new instance of the DisplacementMapEffect class.</summary>
-    </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Dispose">
-      <summary>Releases all resources used by the DisplacementMapEffect.</summary>
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.XChannelSelect">
       <summary>The effect extracts the intensity from this color channel and uses it to 
@@ -58,6 +54,9 @@ under the License.
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Source">
       <summary>Gets or sets the main input source for DisplacementMap effect.</summary>
+      <remarks>
+        This property is initialized to null.
+      </remarks>
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Displacement">
       <summary>Gets or sets the displacement image which is used to distort the main Source image.</summary>
@@ -66,28 +65,9 @@ under the License.
       <summary>Scales the intensity of the displacement. The higher you set this 
                property, the more the effect displaces the pixels. Default value 0.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.EffectId">
-      <summary>Gets the unique identifier for the effect.</summary>
-      <remarks>
-        <p>Generic way to query the type of an effect. EffectId is equal to the 
-           CLSID_D2D1DisplacementMap GUID specified in the SDK header d2d1effects.h.</p>
-      </remarks>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Inputs">
-      <summary>Gets a collection of inputs attached to the effect.</summary>
-      <inheritdoc/>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.Properties">
-      <summary>Gets the collection of properties specific to the current effect.</summary>
-      <inheritdoc/>
-    </member>
     
-    <member name="M:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession)">
-      <summary>Retrieves the bounds of this CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0), and identity transform on the specified drawing session.</summary>
-    </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.DisplacementMapEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession,Microsoft.Graphics.Canvas.Numerics.Matrix3x2)">
-      <summary>Retrieves the bounds of the CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0) with the specified transform transform on the specified drawing session.</summary>
-    </member>
+    <inherittemplate name="EffectTemplate" replacement="DisplacementMapEffect" />
+    <inherittemplate name="ICanvasEffectTemplate" replacement="DisplacementMapEffect" />
 
   </members>
 </doc>

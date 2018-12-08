@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -17,40 +9,48 @@
 
 namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { namespace Effects
 {
-    DisplacementMapEffect::DisplacementMapEffect()
-        : CanvasEffect(CLSID_D2D1DisplacementMap, 3, 2, true)
+    DisplacementMapEffect::DisplacementMapEffect(ICanvasDevice* device, ID2D1Effect* effect)
+        : CanvasEffect(EffectId(), 3, 2, true, device, effect, static_cast<IDisplacementMapEffect*>(this))
     {
-        // Set default values
-        SetProperty<float>(D2D1_DISPLACEMENTMAP_PROP_SCALE, 0.0f);
-        SetProperty<uint32_t>(D2D1_DISPLACEMENTMAP_PROP_X_CHANNEL_SELECT, EffectChannelSelect::Alpha);
-        SetProperty<uint32_t>(D2D1_DISPLACEMENTMAP_PROP_Y_CHANNEL_SELECT, EffectChannelSelect::Alpha);
+        if (!effect)
+        {
+            // Set default values
+            SetBoxedProperty<float>(D2D1_DISPLACEMENTMAP_PROP_SCALE, 0.0f);
+            SetBoxedProperty<uint32_t>(D2D1_DISPLACEMENTMAP_PROP_X_CHANNEL_SELECT, EffectChannelSelect::Alpha);
+            SetBoxedProperty<uint32_t>(D2D1_DISPLACEMENTMAP_PROP_Y_CHANNEL_SELECT, EffectChannelSelect::Alpha);
+        }
     }
 
-    IMPLEMENT_PROPERTY(DisplacementMapEffect,
+    IMPLEMENT_EFFECT_PROPERTY(DisplacementMapEffect,
         Amount,
         float,
         float,
         D2D1_DISPLACEMENTMAP_PROP_SCALE)
 
-    IMPLEMENT_PROPERTY(DisplacementMapEffect,
+    IMPLEMENT_EFFECT_PROPERTY(DisplacementMapEffect,
         XChannelSelect,
         uint32_t,
         EffectChannelSelect,
         D2D1_DISPLACEMENTMAP_PROP_X_CHANNEL_SELECT)
 
-    IMPLEMENT_PROPERTY(DisplacementMapEffect,
+    IMPLEMENT_EFFECT_PROPERTY(DisplacementMapEffect,
         YChannelSelect,
         uint32_t,
         EffectChannelSelect,
         D2D1_DISPLACEMENTMAP_PROP_Y_CHANNEL_SELECT)
 
-    IMPLEMENT_INPUT_PROPERTY(DisplacementMapEffect,
+    IMPLEMENT_EFFECT_SOURCE_PROPERTY(DisplacementMapEffect,
         Source,
         0)
 
-    IMPLEMENT_INPUT_PROPERTY(DisplacementMapEffect,
+    IMPLEMENT_EFFECT_SOURCE_PROPERTY(DisplacementMapEffect,
         Displacement,
         1)
 
-    ActivatableClass(DisplacementMapEffect);
+    IMPLEMENT_EFFECT_PROPERTY_MAPPING(DisplacementMapEffect,
+        { L"Amount",         D2D1_DISPLACEMENTMAP_PROP_SCALE,            GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT },
+        { L"XChannelSelect", D2D1_DISPLACEMENTMAP_PROP_X_CHANNEL_SELECT, GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT },
+        { L"YChannelSelect", D2D1_DISPLACEMENTMAP_PROP_Y_CHANNEL_SELECT, GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT })
+
+    ActivatableClassWithFactory(DisplacementMapEffect, SimpleAgileActivationFactory<DisplacementMapEffect>);
 }}}}}

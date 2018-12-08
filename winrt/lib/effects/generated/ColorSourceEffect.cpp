@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -17,18 +9,31 @@
 
 namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { namespace Effects
 {
-    ColorSourceEffect::ColorSourceEffect()
-        : CanvasEffect(CLSID_D2D1Flood, 1, 0, true)
+    ColorSourceEffect::ColorSourceEffect(ICanvasDevice* device, ID2D1Effect* effect)
+        : CanvasEffect(EffectId(), 1, 0, true, device, effect, static_cast<IColorSourceEffect*>(this))
     {
-        // Set default values
-        SetProperty<float[4]>(D2D1_FLOOD_PROP_COLOR, Color{ 255, 0, 0, 0 });
+        if (!effect)
+        {
+            // Set default values
+            SetBoxedProperty<float[4]>(D2D1_FLOOD_PROP_COLOR, Color{ 255, 0, 0, 0 });
+        }
     }
 
-    IMPLEMENT_PROPERTY(ColorSourceEffect,
+    IMPLEMENT_EFFECT_PROPERTY(ColorSourceEffect,
         Color,
         float[4],
         Color,
         D2D1_FLOOD_PROP_COLOR)
 
-    ActivatableClass(ColorSourceEffect);
+    IMPLEMENT_EFFECT_PROPERTY(ColorSourceEffect,
+        ColorHdr,
+        float[4],
+        Numerics::Vector4,
+        D2D1_FLOOD_PROP_COLOR)
+
+    IMPLEMENT_EFFECT_PROPERTY_MAPPING(ColorSourceEffect,
+        { L"Color",    D2D1_FLOOD_PROP_COLOR, GRAPHICS_EFFECT_PROPERTY_MAPPING_COLOR_TO_VECTOR4 },
+        { L"ColorHdr", D2D1_FLOOD_PROP_COLOR, GRAPHICS_EFFECT_PROPERTY_MAPPING_UNKNOWN          })
+
+    ActivatableClassWithFactory(ColorSourceEffect, SimpleAgileActivationFactory<ColorSourceEffect>);
 }}}}}

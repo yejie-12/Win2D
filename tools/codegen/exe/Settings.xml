@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <Settings>
@@ -19,9 +11,9 @@ under the License.
 
   <Prefix Value="Canvas"/>
 
-  <Subnamespace Value="Canvas"/>
-
   <FilenameBase Value="Canvas"/>
+  
+  <RootNamespace Value="Microsoft.Graphics.Canvas" />
   
   <Primitive Name="FLOAT" ProjectedNameOverride="float"/>
   
@@ -32,20 +24,20 @@ under the License.
 
   <Namespace Name="D2D1">
     <!-- Enums and structs are not projected by default and need to be explicitly included here -->
-    <!-- Todo: Sanity check that the same element isn't specified twice for overrides. See backlog item #1140.-->
 
     <Enum Name="DEBUG_LEVEL" ShouldProject="true"/>
-    <Enum Name="CAP_STYLE" ShouldProject="true"/>
-    <Enum Name="DASH_STYLE" ShouldProject="true">
+    <Enum Name="CAP_STYLE" ShouldProject="true" Namespace="Geometry" />
+    <Enum Name="DASH_STYLE" ShouldProject="true" Namespace="Geometry">
         <Field Name="CUSTOM" ShouldProject="false" />
     </Enum>
-    <Enum Name="LINE_JOIN" ShouldProject="true"/>
-    <Enum Name="STROKE_TRANSFORM_TYPE" ShouldProject="true" ProjectedNameOverride="StrokeTransformBehavior"/>"
+    <Enum Name="LINE_JOIN" ShouldProject="true" Namespace="Geometry" />
+    <Enum Name="STROKE_TRANSFORM_TYPE" ShouldProject="true" ProjectedNameOverride="StrokeTransformBehavior" Namespace="Geometry" />
     <Enum Name="ANTIALIAS_MODE" ShouldProject="true" ProjectedNameOverride="Antialiasing">
         <Field Name="PER_PRIMITIVE" ProjectedNameOverride="Antialiased"/>
     </Enum>
     <Enum Name="PRIMITIVE_BLEND" ShouldProject="true" ProjectedNameOverride="Blend"/>
-    <Enum Name="TEXT_ANTIALIAS_MODE" ShouldProject="true" ProjectedNameOverride="TextAntialiasing">
+    <Enum Name="TEXT_ANTIALIAS_MODE" ShouldProject="true" ProjectedNameOverride="TextAntialiasing" Namespace="Text">
+        <Field Name="DEFAULT" ProjectedNameOverride="Auto"/>
         <Field Name="CLEARTYPE" ProjectedNameOverride="ClearType"/>
     </Enum>
     <Enum Name="UNIT_MODE" ShouldProject="true" ProjectedNameOverride="Units"/>
@@ -75,16 +67,42 @@ under the License.
         <Field Name="SOURCE_COPY" ProjectedNameOverride="Copy"/>
         <Field Name="BOUNDED_SOURCE_COPY" ProjectedNameOverride="BoundedCopy"/>
     </Enum>
+    <Enum Name="SWEEP_DIRECTION" ShouldProject="true" Namespace="Geometry" />
+    <Enum Name="FIGURE_BEGIN" ShouldProject="true" ProjectedNameOverride="FigureFill" Namespace="Geometry">
+      <Field Name="HOLLOW" ShouldProject="true" ProjectedNameOverride="DoesNotAffectFills"/>
+      <Field Name="FILLED" ShouldProject="true" ProjectedNameOverride="Default"/>
+    </Enum>
+    <Enum Name="FIGURE_END" ShouldProject="true" ProjectedNameOverride="FigureLoop" Namespace="Geometry" />
+    <Enum Name="FILL_MODE" ShouldProject="true" ProjectedNameOverride="FilledRegionDetermination" Namespace="Geometry" />
+    <Enum Name="PATH_SEGMENT" ShouldProject="true" ProjectedNameOverride="FigureSegmentOptions" Namespace="Geometry" />
+    <Enum Name="ARC_SIZE" ShouldProject="true" Namespace="Geometry" />
 
+    <Enum Name="COMBINE_MODE" ShouldProject="true" ProjectedNameOverride="GeometryCombine" Namespace="Geometry" />
+    <Enum Name="GEOMETRY_RELATION" ShouldProject="true" Namespace="Geometry">
+      <Field Name="UNKNOWN" ShouldProject="false"/>
+      <Field Name="DISJOINT" ShouldProject="true" ProjectedValueOverride="0"/>
+      <Field Name="IS_CONTAINED" ShouldProject="true" ProjectedNameOverride="Contained" ProjectedValueOverride="1"/>
+      <Field Name="CONTAINS" ShouldProject="true" ProjectedValueOverride="2"/>
+      <Field Name="OVERLAP" ShouldProject="true" ProjectedValueOverride="3"/>
+    </Enum>
+    <Enum Name="GEOMETRY_SIMPLIFICATION_OPTION" ShouldProject="true" ProjectedNameOverride="GeometrySimplification" Namespace="Geometry" />
+    <Enum Name="LAYER_OPTIONS1" ShouldProject="true" ProjectedNameOverride="LayerOptions"/>
+    <Enum Name="DRAW_TEXT_OPTIONS" ShouldProject="true" Namespace="Text">
+      <Field Name="NONE" ProjectedNameOverride="Default"/>
+      <Field Name="NO_SNAP" ProjectedNameOverride="NoPixelSnap"/>
+      <Field Name="DISABLE_COLOR_BITMAP_SNAPPING" ShouldProject="false"/>
+    </Enum>
   </Namespace>
   
   <Namespace Name="Effects">
-    <Enum Name="3DTransformEffectInterpolationMode" ShouldProject="false" ProjectedNameOverride="CanvasImageInterpolation" Namespace="Microsoft.Graphics.Canvas">
-      <Field Name="HighQualityCubic" Index="5" ShouldProject="false"/>
-    </Enum>
     <Enum Name="EffectInterpolationMode" ShouldProject="false" ProjectedNameOverride="CanvasImageInterpolation" Namespace="Microsoft.Graphics.Canvas"/>
     <Enum Name="EffectScaleMode" ShouldProject="false" ProjectedNameOverride="CanvasImageInterpolation" Namespace="Microsoft.Graphics.Canvas"/>
-
+    <Enum Name="EffectInputColorSpace" ShouldProject="true" ProjectedNameOverride="EffectHueColorSpace" WinVer="_WIN32_WINNT_WIN10">
+      <Field Name="HSV" ProjectedNameOverride="Hsv"/>
+      <Field Name="HSL" ProjectedNameOverride="Hsl"/>
+    </Enum>
+    <Enum Name="EffectOutputColorSpace" ShouldProject="false" ProjectedNameOverride="EffectHueColorSpace"/>
+    <Enum Name="HighlightsandShadowsEffectInputGamma" ShouldProject="false"/>
     <Enum Name="EffectXChannelSelect" ShouldProject="true" ProjectedNameOverride="EffectChannelSelect">
       <Field Name="RedChannel" ProjectedNameOverride="Red"/>
       <Field Name="GreenChannel" ProjectedNameOverride="Green"/>
@@ -94,13 +112,12 @@ under the License.
     <Enum Name="EffectYChannelSelect" ShouldProject="false" ProjectedNameOverride="EffectChannelSelect"/>
     <Enum Name="EffectEdgeModeX" ShouldProject="false" ProjectedNameOverride="CanvasEdgeBehavior" Namespace="Microsoft.Graphics.Canvas"/>
     <Enum Name="EffectEdgeModeY" ShouldProject="false" ProjectedNameOverride="CanvasEdgeBehavior" Namespace="Microsoft.Graphics.Canvas"/>
-    <Enum Name="ColorMatrixEffectAlphaMode" ShouldProject="false" ProjectedNameOverride="CanvasAlphaMode" Namespace="Microsoft.Graphics.Canvas">
+    <Enum Name="EffectAlphaMode" ShouldProject="false" ProjectedNameOverride="CanvasAlphaMode" Namespace="Microsoft.Graphics.Canvas">
       <Field Name="Ignore" Index="2" ShouldProject="false"/>
     </Enum>
     <Enum Name="CompositeEffectMode" ShouldProject="false" ProjectedNameOverride="CanvasComposite" Namespace="Microsoft.Graphics.Canvas"/>
-    <Effect Name="ColorMatrixEffect">
-      <Property Name="AlphaMode" IsHandCoded="true"/>
-    </Effect>
+    <Enum Name="EffectSourceRenderingIntent" ProjectedNameOverride="ColorManagementRenderingIntent"/>
+    <Enum Name="EffectDestinationRenderingIntent" ProjectedNameOverride="ColorManagementRenderingIntent"/>
     <Effect Name="AffineTransform2DEffect" ProjectedNameOverride="Transform2DEffect"/>
     <Effect Name="FloodEffect" ProjectedNameOverride="ColorSourceEffect"/>
     <Effect Name="AtlasEffect">
@@ -110,6 +127,17 @@ under the License.
     <Effect Name="BorderEffect">
       <Property Name="EdgeModeX" ProjectedNameOverride="ExtendX"/>
       <Property Name="EdgeModeY" ProjectedNameOverride="ExtendY"/>
+    </Effect>
+    <Effect Name="ColorManagementEffect">
+      <Property Name="SourceColorContext" ProjectedNameOverride="SourceColorProfile"/>
+      <Property Name="DestinationColorContext" ProjectedNameOverride="OutputColorProfile"/>
+      <Property Name="DestinationRenderingIntent" ProjectedNameOverride="OutputRenderingIntent"/>
+      <CustomStaticMethodIdl>
+        HRESULT IsBestQualitySupported(Microsoft.Graphics.Canvas.CanvasDevice* device, [out, retval] boolean* result);
+      </CustomStaticMethodIdl>
+      <CustomStaticMethodDecl>
+        IFACEMETHODIMP IsBestQualitySupported(ICanvasDevice* device, boolean* result) override;
+      </CustomStaticMethodDecl>
     </Effect>
     <Effect Name="CropEffect">
       <Property Name="Rect" ProjectedNameOverride="SourceRectangle"/>
@@ -218,5 +246,58 @@ under the License.
       <Property Name="ScaleMode" ProjectedNameOverride="InterpolationMode"/>
       <Property Name="Bias" ProjectedNameOverride="Offset"/>
     </Effect>
+    <Effect Name="ChromaKeyEffect" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="ContrastEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="ClampInput" ProjectedNameOverride="ClampSource"/>
+    </Effect>
+    <Effect Name="EdgeDetectionEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="Strength" ProjectedNameOverride="Amount"/>
+      <Property Name="BlurRadius" ProjectedNameOverride="BlurAmount"/>
+    </Effect>
+    <Effect Name="EmbossEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="Height" ProjectedNameOverride="Amount"/>
+      <Property Name="Direction" ProjectedNameOverride="Angle" ConvertRadiansToDegrees="true"/>
+    </Effect>
+    <Effect Name="ExposureEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="ExposureValue" ProjectedNameOverride="Exposure"/>
+    </Effect>
+    <Effect Name="GrayscaleEffect" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="HighlightsandShadowsEffect" ProjectedNameOverride="HighlightsAndShadowsEffect" CLSIDOverride="CLSID_D2D1HighlightsShadows" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="MaskBlurRadius" ProjectedNameOverride="MaskBlurAmount"/>
+      <Property Name="InputGamma" ProjectedNameOverride="SourceIsLinearGamma" Type="boolean" IsHandCoded="true"/>
+    </Effect>
+    <Effect Name="HueToRgbEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="InputColorSpace" ProjectedNameOverride="SourceColorSpace"/>
+    </Effect>
+    <Effect Name="InvertEffect" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="LookupTable3DEffect" ProjectedNameOverride="TableTransfer3DEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="Lut" ProjectedNameOverride="Table"/>
+    </Effect>
+    <Effect Name="PosterizeEffect" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="RgbToHueEffect" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="SepiaEffect" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="SharpenEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="Sharpness" ProjectedNameOverride="Amount"/>
+    </Effect>
+    <Effect Name="StraightenEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="Angle" ConvertRadiansToDegrees="true"/>
+      <Property Name="ScaleMode" ProjectedNameOverride="InterpolationMode"/>
+    </Effect>
+    <Effect Name="TemperatureAndTintEffect" CLSIDOverride="CLSID_D2D1TemperatureTint" WinVer="_WIN32_WINNT_WIN10"/>
+    <Effect Name="VignetteEffect" WinVer="_WIN32_WINNT_WIN10">
+      <Property Name="TransitionSize" ProjectedNameOverride="Amount"/>
+      <Property Name="Strength" ProjectedNameOverride="Curve"/>
+    </Effect>
+    <Effect Name="AlphaMaskEffect" WinVer="_WIN32_WINNT_WIN10" IsSupportedCheck="ID2D1Factory5">
+      <Input Name="Destination" ProjectedNameOverride="Source"/>
+      <Input Name="Mask" ProjectedNameOverride="AlphaMask"/>
+    </Effect>
+    <Effect Name="CrossFadeEffect" WinVer="_WIN32_WINNT_WIN10" IsSupportedCheck="ID2D1Factory5">
+      <Input Name="Source" ProjectedNameOverride="Source1"/>
+      <Input Name="Destination" ProjectedNameOverride="Source2"/>
+      <Property Name="Weight" ProjectedNameOverride="CrossFade"/>
+    </Effect>
+    <Effect Name="OpacityEffect" WinVer="_WIN32_WINNT_WIN10" IsSupportedCheck="ID2D1Factory5"/>
+    <Effect Name="TintEffect" WinVer="_WIN32_WINNT_WIN10" IsSupportedCheck="ID2D1Factory5"/>
   </Namespace>
 </Settings>

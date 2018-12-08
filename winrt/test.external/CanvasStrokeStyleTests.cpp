@@ -1,19 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #include "pch.h"
 
 using namespace Microsoft::Graphics::Canvas;
-using namespace Microsoft::Graphics::Canvas::Numerics;
 using namespace Windows::UI;
 
 TEST_CLASS(CanvasStrokeStyleTests)
@@ -28,6 +19,93 @@ public:
     TEST_METHOD(CanvasStrokeStyleTests_Construction)
     {
         CanvasStrokeStyle^ canvasStrokeStyle = ref new CanvasStrokeStyle();
+    }
+
+    TEST_METHOD(CanvasStrokeStyleTests_Interop)
+    {
+        auto device1 = ref new CanvasDevice();
+        auto device2 = ref new CanvasDevice();
+
+        // Create a default stroke style, then interop Win2D -> D2D.
+        auto strokeStyle = ref new CanvasStrokeStyle();
+
+        auto d2dStrokeStyle = GetWrappedResource<ID2D1StrokeStyle1>(device1, strokeStyle);
+
+        Assert::AreEqual(strokeStyle->MiterLimit, d2dStrokeStyle->GetMiterLimit());
+
+        // Stroke style factory should match device1.
+        ComPtr<ID2D1Factory> strokeStyleFactory, deviceFactory;
+
+        d2dStrokeStyle->GetFactory(&strokeStyleFactory);
+        GetWrappedResource<ID2D1Device>(device1)->GetFactory(&deviceFactory);
+
+        Assert::AreEqual(strokeStyleFactory.Get(), deviceFactory.Get());
+
+        // Repeated interop without changing the Win2D object should be idempotent.
+        Assert::AreEqual(d2dStrokeStyle.Get(), GetWrappedResource<ID2D1StrokeStyle1>(device1, strokeStyle).Get());
+        Assert::AreEqual(strokeStyle, GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyle.Get()));
+
+        // If we change the Win2D object, interop should then return a new D2D instance.
+        const float newMiterLimit = 1.234f;
+        strokeStyle->MiterLimit = newMiterLimit;
+
+        auto d2dStrokeStyleWithNewMiterLimit = GetWrappedResource<ID2D1StrokeStyle1>(device1, strokeStyle);
+
+        Assert::AreNotEqual(d2dStrokeStyleWithNewMiterLimit.Get(), d2dStrokeStyle.Get());
+        Assert::AreEqual(newMiterLimit, d2dStrokeStyleWithNewMiterLimit->GetMiterLimit());
+
+        // Repeated interop should still be idempotent.
+        Assert::AreEqual(d2dStrokeStyleWithNewMiterLimit.Get(), GetWrappedResource<ID2D1StrokeStyle1>(device1, strokeStyle).Get());
+        Assert::AreEqual(strokeStyle, GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyleWithNewMiterLimit.Get()));
+
+        // Interop onto a different device should return a new D2D instance.
+        auto d2dStrokeStyleOnNewDevice = GetWrappedResource<ID2D1StrokeStyle1>(device2, strokeStyle);
+
+        Assert::AreNotEqual(d2dStrokeStyleOnNewDevice.Get(), d2dStrokeStyle.Get());
+        Assert::AreNotEqual(d2dStrokeStyleOnNewDevice.Get(), d2dStrokeStyleWithNewMiterLimit.Get());
+
+        // Stroke style factory should now match device2.
+        d2dStrokeStyleOnNewDevice->GetFactory(&strokeStyleFactory);
+        GetWrappedResource<ID2D1Device>(device2)->GetFactory(&deviceFactory);
+
+        Assert::AreEqual(strokeStyleFactory.Get(), deviceFactory.Get());
+
+        // Repeated interop should still be idempotent.
+        Assert::AreEqual(d2dStrokeStyleOnNewDevice.Get(), GetWrappedResource<ID2D1StrokeStyle1>(device2, strokeStyle).Get());
+        Assert::AreEqual(strokeStyle, GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyleOnNewDevice.Get()));
+
+        // D2D -> Win2D interop should be able to create new wrapper instances.
+        auto strokeStyle2 = GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyle.Get());
+        auto strokeStyle3 = GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyleWithNewMiterLimit.Get());
+
+        Assert::AreNotEqual(strokeStyle, strokeStyle2);
+        Assert::AreNotEqual(strokeStyle, strokeStyle3);
+        Assert::AreNotEqual(strokeStyle2, strokeStyle3);
+        
+        // But now the wrappers are created, repeated interop should return these existing copies.
+        Assert::AreEqual(strokeStyle2, GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyle.Get()));
+        Assert::AreEqual(strokeStyle3, GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyleWithNewMiterLimit.Get()));
+
+        // If we change a Win2D object, then repeated interop from what used to be its D2D resource should create a new wrapper.
+        strokeStyle2->EndCap = CanvasCapStyle::Triangle;
+
+        auto strokeStyle4 = GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyle.Get());
+
+        Assert::AreNotEqual(strokeStyle, strokeStyle4);
+        Assert::AreNotEqual(strokeStyle2, strokeStyle4);
+        Assert::AreNotEqual(strokeStyle3, strokeStyle4);
+
+        // Failing to specify the device is not legal.
+        ExpectCOMException(E_INVALIDARG, L"To unwrap this resource type, a device parameter must be passed to GetWrappedResource.",
+            [&]
+            {
+                GetWrappedResource<ID2D1StrokeStyle1>(strokeStyle);
+            });
+
+        // Specifying arbitrary DPI values is fine and ignored.
+        const float arbitraryDpi = 1234;
+
+        Assert::AreEqual(d2dStrokeStyleOnNewDevice.Get(), GetWrappedResource<ID2D1StrokeStyle1>(device2, strokeStyle, arbitraryDpi).Get());
     }
 
     TEST_METHOD(CanvasStrokeStyleTests_Interop_FactoryMixing)
@@ -62,7 +140,7 @@ public:
                     strokeStyle = GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyle.Get());
                 }
 
-                Vector2 point{ 1, 1 };
+                float2 point{ 1, 1 };
                 drawingSession->DrawLine(point, point, brush, 5, strokeStyle);
 
                 delete drawingSession;
@@ -88,7 +166,7 @@ public:
 
                 CanvasStrokeStyle^ strokeStyle = ref new CanvasStrokeStyle();
 
-                Vector2 point{ 1, 1 };
+                float2 point{ 1, 1 };
                 drawingSession->DrawLine(point, point, brush, 5, strokeStyle);
 
                 delete drawingSession;
@@ -168,7 +246,7 @@ public:
         ThrowIfFailed(d2dFactory->CreateStrokeStyle(&strokeStyleProperties, NULL, 0, &d2dStrokeStyle));
         auto canvasStrokeStyle = GetOrCreate<CanvasStrokeStyle>(d2dStrokeStyle.Get());
 
-        Vector2 point{ 0, 1 };
+        float2 point{ 0, 1 };
         drawingSession->DrawLine(point, point, canvasBrush, 5.0f, canvasStrokeStyle);
 
         delete drawingSession;

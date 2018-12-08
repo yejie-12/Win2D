@@ -1,18 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
+#include <algorithm>
 #include "Utilities.h"
+#include "WinStringWrapper.h"
 
 //
 // RAII type for managing COM arrays.  These are arrays that are passed to/from
@@ -53,15 +47,65 @@
 //
 struct EmptyComArrayBase {};
 
+// Traits describing how to implement a ComArray of plain-old-data.
+template<typename T>
+struct ComArrayTraits
+{
+    static_assert(std::is_pod<T>::value && !std::is_pointer<T>::value, "T must be plain-old non-pointer data");
+
+    typedef T* data_ptr_t;
+
+    static void InitializeElements(T*, uint32_t) { }
+    static void ReleaseElements(T*, uint32_t) { }
+};
+
+// Traits describing how to implement a ComArray of ComPtr<T>.
+template<typename T>
+struct ComArrayTraits<Microsoft::WRL::ComPtr<T>>
+{
+    static_assert(sizeof(Microsoft::WRL::ComPtr<T>) == sizeof(T*), "ComPtr must be reinterpretable as T*");
+
+    typedef T** data_ptr_t;
+
+    static void InitializeElements(Microsoft::WRL::ComPtr<T>* data, uint32_t size)
+    {
+        std::uninitialized_fill_n(data->GetAddressOf(), size, nullptr);
+    }
+
+    static void ReleaseElements(Microsoft::WRL::ComPtr<T>* data, uint32_t size)
+    {
+        std::for_each(data, data + size, std::mem_fn(&Microsoft::WRL::ComPtr<T>::Reset));
+    }
+};
+
+// Traits describing how to implement a ComArray of WinString.
+template<typename Base>
+struct ComArrayTraits<WinStringT<Base>>
+{
+    static_assert(sizeof(WinStringT<Base>) == sizeof(HSTRING), "WinString must be reinterpretable as HSTRING");
+
+    typedef HSTRING* data_ptr_t;
+
+    static void InitializeElements(WinStringT<Base>* data, uint32_t size)
+    {
+        std::uninitialized_fill_n(data, size, nullptr);
+    }
+
+    static void ReleaseElements(WinStringT<Base>* data, uint32_t size)
+    {
+        std::for_each(data, data + size, std::mem_fn(&WinStringT<Base>::Release));
+    }
+};
+
 template<typename T, typename Base=EmptyComArrayBase>
 class ComArray : public Base
 {
     T* m_data;
     uint32_t m_size;
 
-public:
-    static_assert(std::is_pod<T>::value, "T must be plain-old-data");
+    typedef ComArrayTraits<T> Traits;
 
+public:
     ComArray(ComArray const&) = delete;
     ComArray& operator=(ComArray const&) = delete;
 
@@ -78,13 +122,14 @@ public:
         assert(size <= UINT_MAX);
         if (!m_data)
             ThrowHR(E_OUTOFMEMORY);
+        Traits::InitializeElements(m_data, m_size);
     }
 
     template<typename ITERATOR>
     ComArray(ITERATOR first, ITERATOR last)
         : ComArray(std::distance(first, last))
     {
-        std::copy(first, last, GetBeginIterator());        
+        std::copy(first, last, begin(*this));
     }
 
     ComArray(ComArray&& other)
@@ -116,15 +161,15 @@ public:
         return m_data;
     }
 
+    T const* GetData() const
+    {
+        return m_data;
+    }
+
     T& operator[](uint32_t index)
     {
         assert(index < m_size);
         return m_data[index];
-    }
-
-    stdext::checked_array_iterator<T*> GetBeginIterator()
-    {
-        return stdext::make_checked_array_iterator(m_data, m_size);
     }
 
     uint32_t* GetAddressOfSize()
@@ -133,16 +178,16 @@ public:
         return &m_size;
     }
 
-    T** GetAddressOfData()
+    typename Traits::data_ptr_t* GetAddressOfData()
     {
         Release();
-        return &m_data;
+        return reinterpret_cast<Traits::data_ptr_t*>(&m_data);
     }
 
-    void Detach(uint32_t* size, T** data)
+    void Detach(uint32_t* size, typename Traits::data_ptr_t* data)
     {
         *size = m_size;
-        *data = m_data;
+        *data = reinterpret_cast<Traits::data_ptr_t>(m_data);
         
         m_size = 0;
         m_data = nullptr;
@@ -151,12 +196,36 @@ public:
 private:
     void Release()
     {
+        Traits::ReleaseElements(m_data, m_size);
         CoTaskMemFree(m_data);
         m_data = nullptr;
         m_size = 0;
     }
 };
 
+template<typename T, typename Base>
+inline stdext::checked_array_iterator<T const*> begin(ComArray<T, Base> const& a)
+{
+    return stdext::checked_array_iterator<T const*>(a.GetData(), a.GetSize());
+}
+
+template<typename T, typename Base>
+inline stdext::checked_array_iterator<T*> begin(ComArray<T, Base>& a)
+{
+    return stdext::checked_array_iterator<T*>(a.GetData(), a.GetSize());
+}
+
+template<typename T, typename Base>
+inline stdext::checked_array_iterator<T const*> end(ComArray<T, Base> const& a)
+{
+    return stdext::checked_array_iterator<T const*>(a.GetData(), a.GetSize(), a.GetSize());
+}
+
+template<typename T, typename Base>
+inline stdext::checked_array_iterator<T*> end(ComArray<T, Base>& a)
+{
+    return stdext::checked_array_iterator<T*>(a.GetData(), a.GetSize(), a.GetSize());
+}
 
 //
 // Creates a new array where the values are generated by passing each element
@@ -168,7 +237,7 @@ inline ComArray<T, Base> TransformToComArray(ITERATOR first, ITERATOR last, FN f
     auto size = std::distance(first, last);
 
     ComArray<T, Base> array(size);
-    std::transform(first, last, array.GetBeginIterator(), func);
+    std::transform(first, last, begin(array), func);
 
     return array;
 }

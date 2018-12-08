@@ -1,120 +1,84 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using System.Xml.Serialization;
-using System.Globalization;
-using System.Diagnostics;
+using System.Linq;
 
 namespace CodeGen
 {
-    public struct OutputFiles
-    {
-        public Formatter CppFile;
-        public Formatter IdlFile;
-    }
-
     public class OutputDataTypes
     {
         public OutputDataTypes()
         {
-            m_enums = new List<Enum>();
-            m_structs = new List<Struct>();
+            m_types = new List<OutputtableType>();
         }
 
         public void AddEnum(Enum e)
         {
-            m_enums.Add(e);
+            m_types.Add(e);
         }
 
         public void AddStruct(Struct s)
         {
-            m_structs.Add(s);
+            m_types.Add(s);
         }
 
-        public void OutputCode(Dictionary<string, QualifiableType> typeDictionary, OutputFiles outputFiles)
+        public void OutputCode(Dictionary<string, QualifiableType> typeDictionary, Formatter idlFile)
         {
-            OutputLeadingCppCode(outputFiles);
+            OutputLeadingComment(idlFile);
 
-            foreach(Enum e in m_enums)
+            var sortedTypes = m_types.OrderBy(x => x.Namespace).ThenBy(x => x.GetType()).ThenBy(x => x.ProjectedName);
+
+            string currentNamespace = null;
+
+            foreach (var type in sortedTypes)
             {
-                e.OutputCode(outputFiles);
+                UpdateNamespace(idlFile, ref currentNamespace, type.Namespace);
+                type.OutputCode(typeDictionary, idlFile);
             }
 
-            foreach(Struct s in m_structs)
-            {
-                s.OutputCode(typeDictionary, outputFiles);
-            }
-
-            OutputEndingCppCode(outputFiles);
+            UpdateNamespace(idlFile, ref currentNamespace, null);
         }
 
-        public static void OutputLeadingCppCode(OutputFiles outputFiles)
+        public void UpdateNamespace(Formatter idlFile, ref string currentNamespace, string newNamespace)
         {
-            OutputLeadingComment(outputFiles.CppFile);
+            if (currentNamespace != newNamespace)
+            {
+                if (currentNamespace != null)
+                {
+                    // end the previous namespace
+                    idlFile.Unindent();
+                    idlFile.WriteLine("} // " + currentNamespace);
+                    idlFile.WriteLine("");
+                }
 
-            outputFiles.CppFile.WriteLine("#include \"pch.h\"");
-            outputFiles.CppFile.WriteLine("#include <wrl.h>");
-            outputFiles.CppFile.WriteLine("using namespace Microsoft::WRL;");
-            outputFiles.CppFile.WriteLine("using namespace ABI::Microsoft::Graphics::Canvas::Numerics;");
-            outputFiles.CppFile.WriteLine("using namespace ABI::Windows::Foundation;");
-            outputFiles.CppFile.WriteLine("using namespace ABI::Windows::UI;");
-            outputFiles.CppFile.WriteLine();
-            outputFiles.CppFile.WriteLine("namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas");
-            outputFiles.CppFile.WriteLine("{");
-            outputFiles.CppFile.Indent();
+                currentNamespace = newNamespace;
 
-            OutputLeadingComment(outputFiles.IdlFile);
+                if (newNamespace != null)
+                {
+                    idlFile.WriteLine("namespace " + newNamespace);
+                    idlFile.WriteLine("{");
+                    idlFile.Indent();
+                }
+            }
 
-            outputFiles.IdlFile.WriteLine("namespace Microsoft.Graphics.Canvas");
-            outputFiles.IdlFile.WriteLine("{");
-            outputFiles.IdlFile.Indent();
         }
 
         public static void OutputLeadingComment(Formatter output)
         {
             output.WriteLine("// Copyright (c) Microsoft Corporation. All rights reserved.");
             output.WriteLine("//");
-            output.WriteLine("// Licensed under the Apache License, Version 2.0 (the \"License\"); you may");
-            output.WriteLine("// not use these files except in compliance with the License. You may obtain");
-            output.WriteLine("// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0");
-            output.WriteLine("//");
-            output.WriteLine("// Unless required by applicable law or agreed to in writing, software");
-            output.WriteLine("// distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT");
-            output.WriteLine("// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the");
-            output.WriteLine("// License for the specific language governing permissions and limitations");
-            output.WriteLine("// under the License.");
+            output.WriteLine("// Licensed under the MIT License. See LICENSE.txt in the project root for license information.");
             output.WriteLine();
 
             output.WriteLine("// This file was automatically generated. Please do not edit it manually.");
             output.WriteLine();
         }
 
-        public static void OutputEndingCppCode(OutputFiles outputFiles)
-        {
-            outputFiles.CppFile.Unindent();
-            outputFiles.CppFile.WriteLine("}}}}");
-
-            outputFiles.IdlFile.Unindent();
-            outputFiles.IdlFile.WriteLine("}");
-        }
-
-        List<Enum> m_enums;
-        List<Struct> m_structs;
+        List<OutputtableType> m_types;
     }
     
     public class Program
@@ -146,6 +110,8 @@ namespace CodeGen
             files.Add("apiref/D2DTypes2.xml");
             files.Add("apiref/D2DEffectAuthor.xml");
             files.Add("apiref/D2DTypes3.xml");
+            files.Add("apiref/D2DTypes4.xml");
+            files.Add("apiref/D2DSvgTypes.xml");
             return files;
         }
 
@@ -170,7 +136,6 @@ namespace CodeGen
 
             Overrides.XmlBindings.Settings overridesXmlData = XmlBindings.Utilities.LoadXmlData<Overrides.XmlBindings.Settings>(inputDir, "Settings.xml");
             Formatter.Prefix = overridesXmlData.Prefix.Value;
-            Formatter.Subnamespace = overridesXmlData.Subnamespace.Value;
 
             result.FilenameBase = overridesXmlData.FilenameBase.Value;
 
@@ -190,14 +155,9 @@ namespace CodeGen
         {
 
             Directory.CreateDirectory(outputDir);
-            OutputFiles outputFiles = new OutputFiles();
-            using (Formatter cppStreamWriter = new Formatter(Path.Combine(outputDir, inputFiles.FilenameBase + ".codegen.cpp")),
-                             idlStreamWriter = new Formatter(Path.Combine(outputDir, inputFiles.FilenameBase + ".codegen.idl")))
+            using (Formatter idlStreamWriter = new Formatter(Path.Combine(outputDir, inputFiles.FilenameBase + ".codegen.idl")))
             {
-                outputFiles.CppFile = cppStreamWriter;
-                outputFiles.IdlFile = idlStreamWriter;
-
-                inputFiles.OutputDataTypes.OutputCode(inputFiles.TypeDictionary, outputFiles);
+                inputFiles.OutputDataTypes.OutputCode(inputFiles.TypeDictionary, idlStreamWriter);
             }
         }
 

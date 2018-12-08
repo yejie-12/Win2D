@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <!-- [[NOT IN SAMPLE]] -->
+
   <!--
 
     This file contains build system properties that are common between C# and
@@ -9,10 +11,7 @@
   -->
 
   <PropertyGroup>
-    <DeviceType Condition="'$(ApplicationType)' == 'Windows Store'">Windows</DeviceType>
-    <DeviceType Condition="'$(ApplicationType)' == 'Windows Phone'">Phone</DeviceType>
-    <DeviceType Condition="'$(ApplicationType)' == ''">Windows</DeviceType>
-    <DeviceType Condition="'$(TargetPlatformIdentifier)' == 'WindowsPhoneApp'">Phone</DeviceType>
+    <DeviceType Condition="'$(DeviceType)' == ''">$(TargetPlatformIdentifier)</DeviceType>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -25,8 +24,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <BinariesDirectory Condition="'$(TF_BUILD_BINARIESDIRECTORY)' == ''">$(MSBuildThisFileDirectory)..\bin</BinariesDirectory>
-    <BinariesDirectory Condition="'$(TF_BUILD_BINARIESDIRECTORY)' != ''">$(TF_BUILD_BINARIESDIRECTORY)</BinariesDirectory>
+    <BinariesDirectory>$(MSBuildThisFileDirectory)..\bin</BinariesDirectory>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -45,6 +43,13 @@
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\obj\$(MSBuildProjectName)\$(FullPlatform)\$(Configuration)\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
     <AssetDir>$(MSBuildThisFileDirectory)assets\</AssetDir>
+
+    <!-- Force all directories to lower case -->
+    <__OutputPath>$(__OutputPath.ToLower())</__OutputPath>
+    <BaseIntermediateOutputPath>$(BaseIntermediateOutputPath.ToLower())</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$(IntermediateOutputPath.ToLower())</IntermediateOutputPath>
+    <AssetDir>$(AssetDir.ToLower())</AssetDir>
+
   </PropertyGroup>
 
 </Project>

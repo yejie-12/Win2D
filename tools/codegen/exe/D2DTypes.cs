@@ -1,23 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
 using System.Xml.Serialization;
-using System.Globalization;
-using System.Diagnostics;
 
 namespace CodeGen
 {
@@ -54,7 +40,7 @@ namespace CodeGen
             const Namespace globalNamespace = null; // Using null as the namespace parameter indicates the global namespace.
 
             m_primitiveList = new List<Primitive>();
-            foreach(XmlBindings.Primitive p in xmlData.Primitives)
+            foreach (XmlBindings.Primitive p in xmlData.Primitives)
             {
                 Overrides.XmlBindings.Primitive overridePrimitive = null;
                 if (overrides != null) overridePrimitive = overrides.Primitives.Find(x => x.Name == p.Name);
@@ -77,7 +63,7 @@ namespace CodeGen
                 Overrides.XmlBindings.Namespace overrideNamespace = null;
                 if (overrides != null) overrideNamespace = overrides.Namespaces.Find(x => x.Name == n.Name);
 
-                m_namespaceList.Add(new Namespace(n, overrideNamespace, typeDictionary, outputDataTypes));
+                m_namespaceList.Add(new Namespace(n, overrideNamespace, overrides.RootNamespace.Value, typeDictionary, outputDataTypes));
             }
         }
 

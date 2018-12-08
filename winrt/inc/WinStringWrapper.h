@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #pragma once
 
@@ -41,12 +33,17 @@ public:
     {
     }
 
+    WinStringT(std::nullptr_t)
+        : m_value(nullptr)
+    {
+    }
+
     explicit WinStringT(HSTRING str)
     {
         ThrowIfFailed(WindowsDuplicateString(str, &m_value));
     }
 
-    explicit WinStringT(const wchar_t* str)
+    explicit WinStringT(wchar_t const* str)
     {
         auto length = wcslen(str);
         ThrowIfFailed(WindowsCreateString(str, static_cast<uint32_t>(length), &m_value));
@@ -55,6 +52,12 @@ public:
     explicit WinStringT(std::wstring const& str)
         : WinStringT(str.c_str())
     {}
+
+    WinStringT(wchar_t const* begin, wchar_t const* end)
+    {
+        auto length = std::distance(begin, end);
+        ThrowIfFailed(WindowsCreateString(begin, static_cast<uint32_t>(length), &m_value));
+    }
 
     WinStringT(WinStringT const& other)
         : m_value(nullptr)
@@ -73,7 +76,7 @@ public:
         Release();
     }
 
-    WinStringT& operator=(const wchar_t* str)
+    WinStringT& operator=(wchar_t const* str)
     {
         return operator=(WinString(str));
     }
@@ -116,8 +119,7 @@ public:
         ThrowIfFailed(WindowsDuplicateString(m_value, dest));
     }
 
-
-    explicit operator const wchar_t*() const
+    explicit operator wchar_t const*() const
     {
         return WindowsGetStringRawBuffer(m_value, nullptr);
     }
@@ -146,8 +148,34 @@ public:
     {
         // Recreate the string from the c-style string.  This will only copy
         // up to the first null character.
-        return WinStringT(static_cast<const wchar_t*>(*this));
+        return WinStringT(static_cast<wchar_t const*>(*this));
+    }
+
+    friend wchar_t const* begin(WinStringT const& s)
+    {
+        return static_cast<wchar_t const*>(s);
+    }
+
+    friend wchar_t const* end(WinStringT const& s)
+    {
+        uint32_t length = 0;
+        auto buf = WindowsGetStringRawBuffer(s.m_value, &length);
+        return buf + length;
     }
 };
 
 typedef WinStringT<> WinString;
+
+// Helper method for quickly getting a string buffer and validating it's not zero-length
+inline wchar_t const* GetStringBuffer(HSTRING string, uint32_t* outputLength = nullptr)
+{
+    uint32_t textLength;
+    auto textBuffer = WindowsGetStringRawBuffer(string, &textLength);
+    ThrowIfNullPointer(textBuffer, E_INVALIDARG);
+
+    if (outputLength)
+        *outputLength = textLength;
+
+    return textBuffer;
+}
+

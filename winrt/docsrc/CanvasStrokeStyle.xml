@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <doc>
@@ -19,44 +11,68 @@ under the License.
   </assembly>
   <members>
 
-    <member name="T:Microsoft.Graphics.Canvas.CanvasStrokeStyle">
+    <member name="T:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle">
       <summary>Defines a stroke style for drawing lines. Dashes, dots, how to join segments, how to cap the ends, etc.</summary>
+      <remarks>
+        <p>
+          When using <a href="Interop.htm">Direct2D interop</a>, this Win2D class
+          corresponds to the Direct2D interface ID2D1StrokeStyle1.
+        </p>
+      </remarks>
     </member>
-    <member name="M:Microsoft.Graphics.Canvas.CanvasStrokeStyle.#ctor">
+    <member name="M:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.#ctor">
       <summary>Initializes a new instance of the CanvasStrokeStyle class.</summary>
+      <remarks>
+        <p>
+          A new stroke style is constructed with the following defaults:
+          <code>            
+            CanvasStrokeStyle defaultStyle = new CanvasStrokeStyle()
+            {
+                StartCap = CanvasCapStyle.Flat,
+                EndCap = CanvasCapStyle.Flat,
+                MiterLimit = 10,
+                DashStyle = CanvasDashStyle.Solid,
+                DashCap = CanvasCapStyle.Square,
+                DashOffset = 0,
+                CustomDashStyle = new float[] { },
+                TransformBehavior = CanvasStrokeTransformBehavior.Normal
+            };
+          </code>
+        </p>
+      </remarks>
     </member>
-    <member name="M:Microsoft.Graphics.Canvas.CanvasStrokeStyle.Dispose">
+    <member name="M:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.Dispose">
       <summary>Releases all resources used by the CanvasStrokeStyle.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.TransformBehavior">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.TransformBehavior">
       <summary>Gets or sets how the world transform, dots per inch (DPI), and stroke width affect the shape of the pen.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.StartCap">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.StartCap">
       <summary>Gets or sets the type of shape used at the beginning of a stroke. Defaults to Flat.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.MiterLimit">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.MiterLimit">
       <summary>Gets or sets the limit on the ratio of the miter length to half the stroke's thickness.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.LineJoin">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.LineJoin">
       <summary>Gets or sets the type of joint used at the vertices of a shape's outline.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.EndCap">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.EndCap">
       <summary>Gets or sets the type of shape used at the end of a stroke. Defaults to Flat.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.DashStyle">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.DashStyle">
       <summary>Gets or sets the stroke's dash pattern.
-               This is ignored if <see cref="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.CustomDashStyle"/> has been set.</summary>
+               This is ignored if <see cref="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.CustomDashStyle"/> has been set.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.DashOffset">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.DashOffset">
       <summary>Gets or sets how far into the dash sequence the stroke will start.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.DashCap">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.DashCap">
       <summary>Gets or sets how the ends of each dash are drawn. Defaults to Square.
                If this is set to Flat, dots will have zero size so only dashes are visible.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.CustomDashStyle">
+    <member name="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.CustomDashStyle">
       <summary>Gets or sets an array describing a custom dash pattern.
-               This overrides the <see cref="P:Microsoft.Graphics.Canvas.CanvasStrokeStyle.DashStyle"/>
+               This overrides the <see cref="P:Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle.DashStyle"/>
                property, which is only used when CustomDashStyle is set to null.</summary>
 
       <remarks>
@@ -65,6 +81,10 @@ under the License.
            the third element sets the length of a dash, and so on. The length of each dash and space in
            the dash pattern is the product of the element value in the array and the stroke width.</p>
         <p>This array must contain an even number of elements.</p>
+        <p>This property is initialized to null.</p>
+        <p> If the dash style is configured to contain a dash which is zero-length, that dash will only be visible with
+            a cap style other than Flat.
+        </p>
       </remarks>
     </member>
 

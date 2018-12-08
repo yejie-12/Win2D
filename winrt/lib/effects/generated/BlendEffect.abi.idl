@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -49,7 +41,7 @@ namespace Microsoft.Graphics.Canvas.Effects
 
     [version(VERSION), uuid(5673248E-7266-5E49-B2AB-2589D5D875C3), exclusiveto(BlendEffect)]
     interface IBlendEffect : IInspectable
-        requires Microsoft.Graphics.Canvas.ICanvasImage
+        requires ICanvasEffect
     {
         [propget]
         HRESULT Mode([out, retval] BlendEffectMode* value);
@@ -58,23 +50,22 @@ namespace Microsoft.Graphics.Canvas.Effects
         HRESULT Mode([in] BlendEffectMode value);
 
         [propget]
-        HRESULT Background([out, retval] IEffectInput** input);
+        HRESULT Background([out, retval] IGRAPHICSEFFECTSOURCE** source);
 
         [propput]
-        HRESULT Background([in] IEffectInput* input);
+        HRESULT Background([in] IGRAPHICSEFFECTSOURCE* source);
 
         [propget]
-        HRESULT Foreground([out, retval] IEffectInput** input);
+        HRESULT Foreground([out, retval] IGRAPHICSEFFECTSOURCE** source);
 
         [propput]
-        HRESULT Foreground([in] IEffectInput* input);
+        HRESULT Foreground([in] IGRAPHICSEFFECTSOURCE* source);
 
     };
 
-    [version(VERSION), activatable(VERSION)]
+    [STANDARD_ATTRIBUTES, activatable(VERSION)]
     runtimeclass BlendEffect
     {
         [default] interface IBlendEffect;
-        interface IEffect;
     }
 }

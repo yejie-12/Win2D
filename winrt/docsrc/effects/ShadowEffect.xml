@@ -2,15 +2,7 @@
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may
-not use these files except in compliance with the License. You may obtain
-a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations
-under the License.
+Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 -->
 
 <doc>
@@ -19,10 +11,12 @@ under the License.
   </assembly>
   <members>
   
-    <member name="T:Microsoft.Graphics.Canvas.Effects.ShadowEffect">
-      <summary>Generates a shadow from the alpha channel of an image. The shadow is more
-               opaque for higher alpha values and more transparent for lower alpha
-               values. You can set the amount of blur and the color of the shadow.</summary>
+    <member name="T:Microsoft.Graphics.Canvas.Effects.ShadowEffect" NoComposition="true">
+      <summary>
+        Generates a shadow from the alpha channel of an image. The shadow is more
+        opaque for higher alpha values and more transparent for lower alpha
+        values. You can set the amount of blur and the color of the shadow.
+      </summary>
       <remarks>
         <p>
           To add a drop shadow to an image, use the shadow effect, translate it by the
@@ -35,14 +29,17 @@ under the License.
     <member name="M:Microsoft.Graphics.Canvas.Effects.ShadowEffect.#ctor">
       <summary>Initializes a new instance of the ShadowEffect class.</summary>
     </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.ShadowEffect.Dispose">
-      <summary>Releases all resources used by the ShadowEffect.</summary>
-    </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.Source">
       <summary>Gets or sets the input source for Shadow effect.</summary>
+      <remarks>
+        This property is initialized to null.
+      </remarks>
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.ShadowColor">
       <summary>Color of the shadow. Default black.</summary>
+    </member>
+    <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.ShadowColorHdr">
+      <summary>High-dynaimc-range color of the shadow. Default black.</summary>
     </member>
     <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.Optimization">
       <summary>Level of performance optimization.
@@ -51,28 +48,9 @@ under the License.
     <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.BlurAmount">
       <summary>The amount of blur to be applied to the alpha channel of the image. Default value 3.</summary>
     </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.EffectId">
-      <summary>Gets the unique identifier for the effect.</summary>
-      <remarks>
-        <p>Generic way to query the type of an effect. EffectId is equal to the 
-           CLSID_D2D1Shadow GUID specified in the SDK header d2d1effects.h.</p>
-      </remarks>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.Inputs">
-      <summary>Gets a collection of inputs attached to the effect.</summary>
-      <inheritdoc/>
-    </member>
-    <member name="P:Microsoft.Graphics.Canvas.Effects.ShadowEffect.Properties">
-      <summary>Gets the collection of properties specific to the current effect.</summary>
-      <inheritdoc/>
-    </member>
     
-    <member name="M:Microsoft.Graphics.Canvas.Effects.ShadowEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession)">
-      <summary>Retrieves the bounds of this CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0), and identity transform on the specified drawing session.</summary>
-    </member>
-    <member name="M:Microsoft.Graphics.Canvas.Effects.ShadowEffect.GetBounds(Microsoft.Graphics.Canvas.CanvasDrawingSession,Microsoft.Graphics.Canvas.Numerics.Matrix3x2)">
-      <summary>Retrieves the bounds of the CanvasImage, in device-independent units. These bounds are the area the image would fill if it were drawn at target offset (0, 0) with the specified transform transform on the specified drawing session.</summary>
-    </member>
+    <inherittemplate name="EffectTemplate" replacement="ShadowEffect" />
+    <inherittemplate name="ICanvasEffectTemplate" replacement="ShadowEffect" />
 
   </members>
 </doc>

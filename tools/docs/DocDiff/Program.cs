@@ -1,21 +1,13 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.Xml.Linq;
-using System.IO;
 using Shared;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace DocDiff
 {
@@ -53,8 +45,8 @@ namespace DocDiff
             Console.WriteLine("Diffing documentation sources to make sure they match the latest API");
 
             // Load the XML doc files.
-            var docSrc = LoadApiMembers(options.DocSrc);
-            var apiRef = LoadApiMembers(options.ApiRef);
+            var docSrc = LoadApiMembers(options.DocSrc, options.DocSrcPath);
+            var apiRef = LoadApiMembers(options.ApiRef, string.Empty);
 
             // Diff them.
             var docsWithSummaries = from doc in docSrc
@@ -98,17 +90,85 @@ namespace DocDiff
             {
                 Console.WriteLine("{0}: warning: orphaned docs: {1}", Path.GetFullPath(orphaned.FileName), orphaned.ApiName);
             }
+
+            // Report any <see cref=""/> references to things that don't exist.
+            ValidateReferences(docSrc, options.AmlSrc);
+        }
+
+
+        static void ValidateReferences(IEnumerable<ApiMember> docs, IEnumerable<string> amlSrc)
+        {
+            // Find all <see cref=""/> elements in the documentation.
+            var references = from doc in docs
+                             from element in doc.MemberElement.Descendants()
+                             where element.Name == "see" || element.Name == "seealso"
+                             select new
+                             {
+                                 Target = element.Attribute("cref").Value,
+                                 FileName = doc.FileName,
+                             };
+
+            // Also look for <codeEntityReference> elements in the AML conceptual content.
+            var codeEntityReference = XName.Get("codeEntityReference", "http://ddue.schemas.microsoft.com/authoring/2003/5");
+
+            var amlReferences = from filename in amlSrc
+                                from reference in LoadXDocument(filename).Descendants(codeEntityReference)
+                                select new
+                                {
+                                    Target = reference.Value.Trim(),
+                                    FileName = filename,
+                                };
+
+            // Report any references with invalid targets.
+            var badReferences = from reference in references.Concat(amlReferences)
+                                where !IsReferenceValid(reference.Target, docs)
+                                select reference;
+
+            foreach (var reference in badReferences)
+            {
+                Console.WriteLine("{0}: warning: bad cref target: {1}", Path.GetFullPath(reference.FileName), reference.Target);
+            }
+        }
+
+
+        static bool IsReferenceValid(string referenceTarget, IEnumerable<ApiMember> docs)
+        {
+            if (referenceTarget.StartsWith("O:"))
+            {
+                // If the reference target is an overload group, there should be more than one method of that name.
+                string methodName = 'M' + referenceTarget.Substring(1);
+                int methodCount = docs.Count(doc => doc.ApiName == methodName || doc.ApiName.StartsWith(methodName + '('));
+                return methodCount > 1;
+            }
+            else
+            {
+                // Otherwise look for an exact match.
+                return docs.Any(doc => doc.ApiName == referenceTarget);
+            }
         }
 
 
         // Loads API information from XML documentation files.
-        static IEnumerable<ApiMember> LoadApiMembers(IEnumerable<string> filenames)
+        static IEnumerable<ApiMember> LoadApiMembers(IEnumerable<string> filenames, string path)
         {
             var members = from filename in filenames
-                          from member in XDocument.Load(filename).Element("doc").Element("members").Elements()
+                          from member in LoadXDocument(Path.Combine(path, filename)).Element("doc").Element("members").Elements()
                           select new ApiMember(member, filename);
 
             return members.ToList();
+        }
+
+
+        static XDocument LoadXDocument(string filename)
+        {
+            try
+            {
+                return XDocument.Load(filename);
+            }
+            catch (Exception e)
+            {
+                throw new Exception(filename + ": " + e);
+            }
         }
     }
 }

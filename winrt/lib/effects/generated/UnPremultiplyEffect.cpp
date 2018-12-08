@@ -1,14 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use these files except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 // This file was automatically generated. Please do not edit it manually.
 
@@ -17,15 +9,18 @@
 
 namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { namespace Effects
 {
-    UnPremultiplyEffect::UnPremultiplyEffect()
-        : CanvasEffect(CLSID_D2D1UnPremultiply, 0, 1, true)
+    UnPremultiplyEffect::UnPremultiplyEffect(ICanvasDevice* device, ID2D1Effect* effect)
+        : CanvasEffect(EffectId(), 0, 1, true, device, effect, static_cast<IUnPremultiplyEffect*>(this))
     {
-        // Set default values
+        if (!effect)
+        {
+            // Set default values
+        }
     }
 
-    IMPLEMENT_INPUT_PROPERTY(UnPremultiplyEffect,
+    IMPLEMENT_EFFECT_SOURCE_PROPERTY(UnPremultiplyEffect,
         Source,
         0)
 
-    ActivatableClass(UnPremultiplyEffect);
+    ActivatableClassWithFactory(UnPremultiplyEffect, SimpleAgileActivationFactory<UnPremultiplyEffect>);
 }}}}}
